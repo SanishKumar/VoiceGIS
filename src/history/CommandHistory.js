@@ -3,6 +3,8 @@
  * Tracks map state changes to allow voice-driven undo/redo functionality.
  */
 
+/** @typedef {import('../map/MapController.js').MapController} MapController */
+
 export class CommandHistory {
   constructor(maxSize = 50) {
     this.maxSize = maxSize;

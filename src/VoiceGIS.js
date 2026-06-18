@@ -207,6 +207,7 @@ export class VoiceGIS {
       for (const cmd of this.customCommands) {
         const match = lowerText.match(cmd.pattern);
         if (match) {
+          // @ts-ignore - custom commands inject an 'action' property which isn't in the built-in result type
           finalResult = { intent: cmd.intent, payload: { match }, raw: result.raw, confidence: 1, action: cmd.action };
           matchedCustom = true;
           break;
