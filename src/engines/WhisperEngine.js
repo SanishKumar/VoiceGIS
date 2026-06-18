@@ -346,8 +346,8 @@ export class WhisperEngine {
       } catch (_) { /* ignore */ }
     }
 
-    // Fall back to WASM (always available)
-    return 'wasm';
+    // Fall back to CPU (WASM in browser, native CPU in Node)
+    return 'cpu';
   }
 
   /**
