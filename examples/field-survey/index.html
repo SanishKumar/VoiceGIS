@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Offline Field Survey - VoiceGIS Example</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #e9ecef; }
+    #map { height: 60vh; width: 100vw; }
+    #panel { height: 40vh; overflow-y: auto; background: white; padding: 20px; box-sizing: border-box; }
+    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #dee2e6; padding-bottom: 10px; margin-bottom: 15px; }
+    h2 { margin: 0; color: #343a40; }
+    button { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; font-size: 16px; cursor: pointer; }
+    button.listening { background: #dc3545; }
+    .data-row { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #dee2e6; }
+    .data-coord { color: #6c757d; font-family: monospace; }
+  </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div id="panel">
+  <div class="header">
+    <h2>📋 Field Data Collection</h2>
+    <button id="btn-voice">🎙️ Start Survey Mode</button>
+  </div>
+  <p style="color: #6c757d; font-size: 14px;">Try saying: "Add marker: found water source" or "Add marker at my location: broken fence"</p>
+  
+  <div id="data-list">
+    <!-- Logged data will appear here -->
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script type="module">
+  import { VoiceGIS } from '../../src/VoiceGIS.js';
+
+  const START_CENTER = [39.7392, -104.9903]; // Denver, CO
+
+  async function init() {
+    const app = new VoiceGIS({
+      mapContainerId: 'map',
+      // Force whisper for offline demonstration
+      speechEngine: 'whisper', 
+      autoExecute: true,
+      enableHistory: true
+    });
+
+    app.map.goTo(START_CENTER, 14);
+    // In a real offline app, you'd load local tiles here instead of OSM
+    app.map.showLayer('osm'); 
+
+    const dataList = document.getElementById('data-list');
+    let pointCounter = 1;
+
+    function addDataEntry(lat, lng, note) {
+      const div = document.createElement('div');
+      div.className = 'data-row';
+      div.innerHTML = `
+        <div><strong>Point ${pointCounter}</strong>: ${note}</div>
+        <div class="data-coord">${lat.toFixed(4)}, ${lng.toFixed(4)}</div>
+      `;
+      dataList.prepend(div);
+      pointCounter++;
+    }
+
+    // Override the default ADD_MARKER intent to capture notes
+    // We can do this via a custom command that catches "add marker [note]"
+    app.registerCommand('ADD_ANNOTATED_MARKER', /(?:add|place|drop) (?:a )?marker(?: at my location| here)?:? (.+)/i, async (mapCtrl, match) => {
+      const note = match[1].trim();
+      const isCurrentLocation = match[0].includes('location') || match[0].includes('here');
+      
+      app.history.snapshot(mapCtrl);
+
+      let coords;
+      if (isCurrentLocation) {
+        try {
+          coords = await mapCtrl.addMarkerAtCurrentLocation();
+          mapCtrl.addMarker(coords, `📍 ${note}`); // Re-add with custom note
+        } catch(e) {
+          console.warn("Geolocation failed, using map center.");
+          const center = mapCtrl.getCenter();
+          coords = [center.lat, center.lng];
+          mapCtrl.addMarker(coords, `📍 ${note}`);
+        }
+      } else {
+        const center = mapCtrl.getCenter();
+        coords = [center.lat, center.lng];
+        mapCtrl.addMarker(coords, `📍 ${note}`);
+      }
+
+      addDataEntry(coords[0], coords[1], note);
+    });
+
+    const btn = document.getElementById('btn-voice');
+
+    app.options.onStateChange = (state) => {
+      if (state === 'listening') {
+        btn.textContent = '🛑 Stop Survey Mode';
+        btn.classList.add('listening');
+      } else {
+        btn.textContent = '🎙️ Start Survey Mode';
+        btn.classList.remove('listening');
+      }
+    };
+
+    await app.initSpeech();
+
+    btn.addEventListener('click', () => {
+      app.speech.isListening ? app.stop() : app.start();
+    });
+  }
+
+  window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

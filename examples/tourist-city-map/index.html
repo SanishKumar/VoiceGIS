@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Paris Tourist Map - VoiceGIS Example</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f8f9fa; }
+    #map { height: calc(100vh - 80px); width: 100vw; }
+    #header {
+      height: 80px; background: #2b2d42; color: white; display: flex; align-items: center; justify-content: space-between; padding: 0 30px;
+    }
+    h1 { margin: 0; font-size: 24px; }
+    button {
+      background: #8d99ae; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; transition: background 0.3s;
+    }
+    button.active { background: #ef233c; }
+    #status { font-size: 18px; font-weight: 500; color: #edf2f4; }
+  </style>
+</head>
+<body>
+
+<div id="header">
+  <h1>🗺️ Discover Paris</h1>
+  <div id="status">Ready.</div>
+  <button id="btn-voice">🎤 Start Assistant</button>
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script type="module">
+  import { VoiceGIS } from '../../src/VoiceGIS.js';
+
+  const PARIS_CENTER = [48.8566, 2.3522];
+
+  async function init() {
+    const app = new VoiceGIS({
+      mapContainerId: 'map',
+      speechEngine: 'auto',
+      autoExecute: true,
+      enableHistory: true
+    });
+
+    app.map.goTo(PARIS_CENTER, 13);
+    app.map.showLayer('osm');
+
+    let poiData = null;
+    let markersLayer = L.layerGroup().addTo(app.map._adapter.map);
+
+    try {
+      const res = await fetch('./paris-poi.json');
+      poiData = await res.json();
+    } catch (err) {
+      console.error("Failed to load POI data:", err);
+    }
+
+    function renderCategory(category) {
+      markersLayer.clearLayers();
+      if (!poiData) return;
+
+      const filtered = category === 'all' 
+        ? poiData.features 
+        : poiData.features.filter(f => f.properties.category === category);
+
+      filtered.forEach(f => {
+        const coords = [f.geometry.coordinates[1], f.geometry.coordinates[0]];
+        const popup = `<b>${f.properties.name}</b><br>${f.properties.description}`;
+        
+        let iconColor = 'blue';
+        if (f.properties.category === 'restaurant') iconColor = 'red';
+        if (f.properties.category === 'museum') iconColor = 'green';
+        
+        // Simple custom marker style using divIcon
+        const icon = L.divIcon({
+          html: `<div style="background-color:${iconColor}; width:16px; height:16px; border-radius:50%; border:2px solid white; box-shadow:0 2px 4px rgba(0,0,0,0.4);"></div>`,
+          className: ''
+        });
+
+        L.marker(coords, {icon}).bindPopup(popup).addTo(markersLayer);
+      });
+      
+      // If we filtered, adjust map bounds
+      if (category !== 'all' && filtered.length > 0) {
+        const group = L.featureGroup(markersLayer.getLayers());
+        app.history.snapshot(app.map);
+        app.map._adapter.map.fitBounds(group.getBounds(), { padding: [50, 50] });
+      }
+    }
+
+    // Render all initially
+    renderCategory('all');
+
+    // Custom commands for POI filtering
+    app.registerCommand('SHOW_CATEGORY', /show(?: me)? (.+)/i, (mapCtrl, match) => {
+      const target = match[1].toLowerCase().trim();
+      
+      if (target.includes('restaurant') || target.includes('food')) {
+        renderCategory('restaurant');
+      } else if (target.includes('museum') || target.includes('art')) {
+        renderCategory('museum');
+      } else if (target.includes('landmark') || target.includes('monument')) {
+        renderCategory('landmark');
+      } else if (target.includes('all') || target.includes('everything')) {
+        renderCategory('all');
+      }
+    });
+
+    const btn = document.getElementById('btn-voice');
+    const statusDiv = document.getElementById('status');
+
+    app.options.onCommandParsed = (result, raw) => {
+      statusDiv.textContent = `Heard: "${raw}"`;
+    };
+
+    app.options.onStateChange = (state) => {
+      if (state === 'listening') {
+        btn.textContent = '🛑 Stop';
+        btn.classList.add('active');
+        statusDiv.textContent = 'Listening...';
+      } else {
+        btn.textContent = '🎤 Start Assistant';
+        btn.classList.remove('active');
+      }
+    };
+
+    await app.initSpeech();
+
+    btn.addEventListener('click', () => {
+      app.speech.isListening ? app.stop() : app.start();
+    });
+  }
+
+  window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

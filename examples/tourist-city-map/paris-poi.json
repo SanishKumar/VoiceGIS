@@ -1,0 +1,77 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Eiffel Tower",
+        "description": "Iconic iron lattice tower on the Champ de Mars.",
+        "category": "landmark"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [2.2945, 48.8584]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Louvre Museum",
+        "description": "World's largest art museum and historic monument.",
+        "category": "museum"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [2.3376, 48.8606]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Notre-Dame de Paris",
+        "description": "Medieval Catholic cathedral on the Île de la Cité.",
+        "category": "landmark"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [2.3499, 48.8529]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Arc de Triomphe",
+        "description": "Famous monument at the western end of the Champs-Élysées.",
+        "category": "landmark"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [2.2950, 48.8738]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Le Jules Verne",
+        "description": "Michelin-starred restaurant in the Eiffel Tower.",
+        "category": "restaurant"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [2.2945, 48.8584]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "L'Ami Jean",
+        "description": "Popular Basque restaurant.",
+        "category": "restaurant"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [2.3082, 48.8580]
+      }
+    }
+  ]
+}

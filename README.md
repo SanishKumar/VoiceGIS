@@ -140,6 +140,18 @@ await app.initSpeech();
 app.start();
 ```
 
+### Example Apps
+
+Check out our domain-specific example apps with live demos and code:
+- [🏫 Campus Navigation (LPU)](examples/campus-navigation/README.md): Voice routing, fuzzy building search, and category filtering.
+- [🗼 Tourist City Map (Paris)](examples/tourist-city-map/README.md): Custom markers, bounding box navigation, and POI filtering.
+- [📋 Offline Field Survey](examples/field-survey/README.md): Completely offline data collection with annotated markers and geolocation.
+### Further Integration Recipes
+
+We have detailed guides for using VoiceGIS in modern tech stacks:
+- [Next.js + Leaflet Dashboard](docs/recipes/nextjs-leaflet-dashboard.md): Best practices for React hooks, SSR hydration, and dynamic imports.
+- [Electron Offline Kiosk](docs/recipes/electron-offline-kiosk.md): Running VoiceGIS with Whisper ONNX on edge devices without internet access.
+
 ## ⚡ Performance & Bundle Size
 
 `VoiceGIS` implements a hybrid engine strategy. Because local on-device AI requires large weights, keep the following in mind:
@@ -148,12 +160,27 @@ app.start();
 - **Whisper & TF.js** engines will dynamically load their weights (~40MB for Whisper `tiny.en`, ~5MB for TF.js) into the browser cache only when instantiated. 
 - If you are building a strict web-app that will *never* go offline, you can configure your bundler (e.g. Vite/Webpack) to tree-shake `@huggingface/transformers` to aggressively reduce your vendor chunk size.
 
-## 🧪 Evaluation Harness
+## 🧪 Evaluation Harness & Accuracy Benchmarks
 
-We ship an offline evaluation harness to measure parser accuracy and prevent regressions.
+We ship an offline evaluation harness (`npm run evaluate`) with a 500+ case benchmark suite to measure parser accuracy, typo-resilience, and prevent regressions.
+
+### Current Accuracy (v2.0.0-beta.1)
+
+| Category | Cases | Accuracy | Notes |
+|---|---|---|---|
+| Zoom Commands | 22 | 68.2% | Handled via exact/regex match |
+| Typo Resilience | 21 | 57.1% | Levenshtein distance ≤ 2 |
+| Navigation (go_to) | 387 | 99.5% | Fuzzy city name and coordinate resolution |
+| Layer Control | 37 | 73.0% | Layer aliases + fuzzy resolution |
+| Marker Commands | 9 | 88.9% | Adding pins / relative locations |
+| Reset View | 6 | 100.0% | Default/home map state |
+| Switch Map | 8 | 75.0% | Dynamic engine switching |
+| Conversational | 7 | 57.1% | Natural phrasing variants |
+| Edge Cases | 41 | 100.0% | Empty, unicode, garbage inputs |
+| **Overall** | **538** | **93.7%** | |
 
 ```bash
-# Run the benchmark suite against src/evaluation/benchmarks.json
+# Run the benchmark suite yourself
 npm run evaluate
 ```
 

@@ -1,21 +1,4144 @@
 [
-  { "text": "zoom in please", "intent": "zoom_in" },
-  { "text": "magnify the map", "intent": "zoom_in" },
-  { "text": "zoom out", "intent": "zoom_out" },
-  { "text": "shrink the map", "intent": "zoom_out" },
-  { "text": "take me to paris", "intent": "go_to", "payload": { "place": "paris" } },
-  { "text": "zoom to new york", "intent": "go_to", "payload": { "place": "new york" } },
-  { "text": "show satellite layer", "intent": "show_layer", "payload": { "layerId": "nasa" } },
-  { "text": "turn on osm", "intent": "show_layer", "payload": { "layerId": "osm" } },
-  { "text": "hide the satellite layer", "intent": "hide_layer", "payload": { "layerId": "nasa" } },
-  { "text": "add a marker", "intent": "add_marker", "payload": { "useCurrentLocation": false } },
-  { "text": "add a marker here", "intent": "add_marker", "payload": { "useCurrentLocation": true } },
-  { "text": "drop a pin at my current location", "intent": "add_marker", "payload": { "useCurrentLocation": true } },
-  { "text": "reset the view", "intent": "reset_view" },
-  { "text": "go home", "intent": "reset_view" },
-  { "text": "switch to openlayers map", "intent": "switch_map", "payload": { "engine": "openlayers" } },
-  { "text": "use leaflet", "intent": "switch_map", "payload": { "engine": "leaflet" } },
-  { "text": "bla bla random text", "intent": "unknown" },
-  { "text": "zoon in", "intent": "zoom_in" },
-  { "text": "show sattelite", "intent": "show_layer", "payload": { "layerId": "nasa" } }
+  {
+    "text": "zoom in",
+    "intent": "zoom_in",
+    "payload": {},
+    "category": "Zoom Commands"
+  },
+  {
+    "text": "zoom in please",
+    "intent": "zoom_in",
+    "payload": {},
+    "category": "Zoom Commands"
+  },
+  {
+    "text": "magnify",
+    "intent": "zoom_in",
+    "payload": {},
+    "category": "Zoom Commands"
+  },
+  {
+    "text": "enlarge",
+    "intent": "zoom_in",
+    "payload": {},
+    "category": "Zoom Commands"
+  },
+  {
+    "text": "make it bigger",
+    "intent": "zoom_in",
+    "payload": {},
+    "category": "Zoom Commands"
+  },
+  {
+    "text": "closer",
+    "intent": "zoom_in",
+    "payload": {},
+    "category": "Zoom Commands"
+  },
+  {
+    "text": "zoom in a bit",
+    "intent": "zoom_in",
+    "payload": {},
+    "category": "Zoom Commands"
+  },
+  {
+    "text": "magnify the map",
+    "intent": "zoom_in",
+    "payload": {},
+    "category": "Zoom Commands"
+  },
+  {
+    "text": "can you zoom in",
+    "intent": "zoom_in",
+    "payload": {},
+    "category": "Zoom Commands"
+  },
+  {
+    "text": "zoom in more",
+    "intent": "zoom_in",
+    "payload": {},
+    "category": "Zoom Commands"
+  },
+  {
+    "text": "increase zoom",
+    "intent": "zoom_in",
+    "payload": {},
+    "category": "Zoom Commands"
+  },
+  {
+    "text": "zoom closer",
+    "intent": "zoom_in",
+    "payload": {},
+    "category": "Zoom Commands"
+  },
+  {
+    "text": "zoom out",
+    "intent": "zoom_out",
+    "payload": {},
+    "category": "Zoom Commands"
+  },
+  {
+    "text": "shrink",
+    "intent": "zoom_out",
+    "payload": {},
+    "category": "Zoom Commands"
+  },
+  {
+    "text": "minify",
+    "intent": "zoom_out",
+    "payload": {},
+    "category": "Zoom Commands"
+  },
+  {
+    "text": "make it smaller",
+    "intent": "zoom_out",
+    "payload": {},
+    "category": "Zoom Commands"
+  },
+  {
+    "text": "zoom out please",
+    "intent": "zoom_out",
+    "payload": {},
+    "category": "Zoom Commands"
+  },
+  {
+    "text": "zoom out a bit",
+    "intent": "zoom_out",
+    "payload": {},
+    "category": "Zoom Commands"
+  },
+  {
+    "text": "shrink the map",
+    "intent": "zoom_out",
+    "payload": {},
+    "category": "Zoom Commands"
+  },
+  {
+    "text": "can you zoom out",
+    "intent": "zoom_out",
+    "payload": {},
+    "category": "Zoom Commands"
+  },
+  {
+    "text": "decrease zoom",
+    "intent": "zoom_out",
+    "payload": {},
+    "category": "Zoom Commands"
+  },
+  {
+    "text": "zoom further away",
+    "intent": "zoom_out",
+    "payload": {},
+    "category": "Zoom Commands"
+  },
+  {
+    "text": "zoon in",
+    "intent": "zoom_in",
+    "payload": {},
+    "category": "Typo Resilience"
+  },
+  {
+    "text": "zuum in",
+    "intent": "zoom_in",
+    "payload": {},
+    "category": "Typo Resilience"
+  },
+  {
+    "text": "zoom een",
+    "intent": "zoom_in",
+    "payload": {},
+    "category": "Typo Resilience"
+  },
+  {
+    "text": "magnyfy",
+    "intent": "zoom_in",
+    "payload": {},
+    "category": "Typo Resilience"
+  },
+  {
+    "text": "enlarg",
+    "intent": "zoom_in",
+    "payload": {},
+    "category": "Typo Resilience"
+  },
+  {
+    "text": "zoon out",
+    "intent": "zoom_out",
+    "payload": {},
+    "category": "Typo Resilience"
+  },
+  {
+    "text": "zuum out",
+    "intent": "zoom_out",
+    "payload": {},
+    "category": "Typo Resilience"
+  },
+  {
+    "text": "shrnk",
+    "intent": "zoom_out",
+    "payload": {},
+    "category": "Typo Resilience"
+  },
+  {
+    "text": "minifi",
+    "intent": "zoom_out",
+    "payload": {},
+    "category": "Typo Resilience"
+  },
+  {
+    "text": "take me to paris",
+    "intent": "go_to",
+    "payload": {
+      "place": "paris"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to paris",
+    "intent": "go_to",
+    "payload": {
+      "place": "paris"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to paris",
+    "intent": "go_to",
+    "payload": {
+      "place": "paris"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to paris",
+    "intent": "go_to",
+    "payload": {
+      "place": "paris"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to paris",
+    "intent": "go_to",
+    "payload": {
+      "place": "paris"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me paris",
+    "intent": "go_to",
+    "payload": {
+      "place": "paris"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is paris",
+    "intent": "go_to",
+    "payload": {
+      "place": "paris"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find paris",
+    "intent": "go_to",
+    "payload": {
+      "place": "paris"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open paris",
+    "intent": "go_to",
+    "payload": {
+      "place": "paris"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to new york",
+    "intent": "go_to",
+    "payload": {
+      "place": "new york"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to new york",
+    "intent": "go_to",
+    "payload": {
+      "place": "new york"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to new york",
+    "intent": "go_to",
+    "payload": {
+      "place": "new york"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to new york",
+    "intent": "go_to",
+    "payload": {
+      "place": "new york"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to new york",
+    "intent": "go_to",
+    "payload": {
+      "place": "new york"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me new york",
+    "intent": "go_to",
+    "payload": {
+      "place": "new york"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is new york",
+    "intent": "go_to",
+    "payload": {
+      "place": "new york"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find new york",
+    "intent": "go_to",
+    "payload": {
+      "place": "new york"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open new york",
+    "intent": "go_to",
+    "payload": {
+      "place": "new york"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to london",
+    "intent": "go_to",
+    "payload": {
+      "place": "london"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to london",
+    "intent": "go_to",
+    "payload": {
+      "place": "london"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to london",
+    "intent": "go_to",
+    "payload": {
+      "place": "london"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to london",
+    "intent": "go_to",
+    "payload": {
+      "place": "london"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to london",
+    "intent": "go_to",
+    "payload": {
+      "place": "london"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me london",
+    "intent": "go_to",
+    "payload": {
+      "place": "london"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is london",
+    "intent": "go_to",
+    "payload": {
+      "place": "london"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find london",
+    "intent": "go_to",
+    "payload": {
+      "place": "london"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open london",
+    "intent": "go_to",
+    "payload": {
+      "place": "london"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to tokyo",
+    "intent": "go_to",
+    "payload": {
+      "place": "tokyo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to tokyo",
+    "intent": "go_to",
+    "payload": {
+      "place": "tokyo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to tokyo",
+    "intent": "go_to",
+    "payload": {
+      "place": "tokyo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to tokyo",
+    "intent": "go_to",
+    "payload": {
+      "place": "tokyo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to tokyo",
+    "intent": "go_to",
+    "payload": {
+      "place": "tokyo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me tokyo",
+    "intent": "go_to",
+    "payload": {
+      "place": "tokyo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is tokyo",
+    "intent": "go_to",
+    "payload": {
+      "place": "tokyo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find tokyo",
+    "intent": "go_to",
+    "payload": {
+      "place": "tokyo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open tokyo",
+    "intent": "go_to",
+    "payload": {
+      "place": "tokyo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to mumbai",
+    "intent": "go_to",
+    "payload": {
+      "place": "mumbai"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to mumbai",
+    "intent": "go_to",
+    "payload": {
+      "place": "mumbai"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to mumbai",
+    "intent": "go_to",
+    "payload": {
+      "place": "mumbai"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to mumbai",
+    "intent": "go_to",
+    "payload": {
+      "place": "mumbai"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to mumbai",
+    "intent": "go_to",
+    "payload": {
+      "place": "mumbai"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me mumbai",
+    "intent": "go_to",
+    "payload": {
+      "place": "mumbai"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is mumbai",
+    "intent": "go_to",
+    "payload": {
+      "place": "mumbai"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find mumbai",
+    "intent": "go_to",
+    "payload": {
+      "place": "mumbai"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open mumbai",
+    "intent": "go_to",
+    "payload": {
+      "place": "mumbai"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to delhi",
+    "intent": "go_to",
+    "payload": {
+      "place": "delhi"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to delhi",
+    "intent": "go_to",
+    "payload": {
+      "place": "delhi"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to delhi",
+    "intent": "go_to",
+    "payload": {
+      "place": "delhi"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to delhi",
+    "intent": "go_to",
+    "payload": {
+      "place": "delhi"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to delhi",
+    "intent": "go_to",
+    "payload": {
+      "place": "delhi"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me delhi",
+    "intent": "go_to",
+    "payload": {
+      "place": "delhi"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is delhi",
+    "intent": "go_to",
+    "payload": {
+      "place": "delhi"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find delhi",
+    "intent": "go_to",
+    "payload": {
+      "place": "delhi"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open delhi",
+    "intent": "go_to",
+    "payload": {
+      "place": "delhi"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to sydney",
+    "intent": "go_to",
+    "payload": {
+      "place": "sydney"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to sydney",
+    "intent": "go_to",
+    "payload": {
+      "place": "sydney"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to sydney",
+    "intent": "go_to",
+    "payload": {
+      "place": "sydney"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to sydney",
+    "intent": "go_to",
+    "payload": {
+      "place": "sydney"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to sydney",
+    "intent": "go_to",
+    "payload": {
+      "place": "sydney"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me sydney",
+    "intent": "go_to",
+    "payload": {
+      "place": "sydney"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is sydney",
+    "intent": "go_to",
+    "payload": {
+      "place": "sydney"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find sydney",
+    "intent": "go_to",
+    "payload": {
+      "place": "sydney"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open sydney",
+    "intent": "go_to",
+    "payload": {
+      "place": "sydney"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to beijing",
+    "intent": "go_to",
+    "payload": {
+      "place": "beijing"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to beijing",
+    "intent": "go_to",
+    "payload": {
+      "place": "beijing"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to beijing",
+    "intent": "go_to",
+    "payload": {
+      "place": "beijing"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to beijing",
+    "intent": "go_to",
+    "payload": {
+      "place": "beijing"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to beijing",
+    "intent": "go_to",
+    "payload": {
+      "place": "beijing"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me beijing",
+    "intent": "go_to",
+    "payload": {
+      "place": "beijing"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is beijing",
+    "intent": "go_to",
+    "payload": {
+      "place": "beijing"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find beijing",
+    "intent": "go_to",
+    "payload": {
+      "place": "beijing"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open beijing",
+    "intent": "go_to",
+    "payload": {
+      "place": "beijing"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to moscow",
+    "intent": "go_to",
+    "payload": {
+      "place": "moscow"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to moscow",
+    "intent": "go_to",
+    "payload": {
+      "place": "moscow"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to moscow",
+    "intent": "go_to",
+    "payload": {
+      "place": "moscow"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to moscow",
+    "intent": "go_to",
+    "payload": {
+      "place": "moscow"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to moscow",
+    "intent": "go_to",
+    "payload": {
+      "place": "moscow"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me moscow",
+    "intent": "go_to",
+    "payload": {
+      "place": "moscow"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is moscow",
+    "intent": "go_to",
+    "payload": {
+      "place": "moscow"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find moscow",
+    "intent": "go_to",
+    "payload": {
+      "place": "moscow"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open moscow",
+    "intent": "go_to",
+    "payload": {
+      "place": "moscow"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to berlin",
+    "intent": "go_to",
+    "payload": {
+      "place": "berlin"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to berlin",
+    "intent": "go_to",
+    "payload": {
+      "place": "berlin"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to berlin",
+    "intent": "go_to",
+    "payload": {
+      "place": "berlin"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to berlin",
+    "intent": "go_to",
+    "payload": {
+      "place": "berlin"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to berlin",
+    "intent": "go_to",
+    "payload": {
+      "place": "berlin"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me berlin",
+    "intent": "go_to",
+    "payload": {
+      "place": "berlin"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is berlin",
+    "intent": "go_to",
+    "payload": {
+      "place": "berlin"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find berlin",
+    "intent": "go_to",
+    "payload": {
+      "place": "berlin"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open berlin",
+    "intent": "go_to",
+    "payload": {
+      "place": "berlin"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to los angeles",
+    "intent": "go_to",
+    "payload": {
+      "place": "los angeles"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to los angeles",
+    "intent": "go_to",
+    "payload": {
+      "place": "los angeles"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to los angeles",
+    "intent": "go_to",
+    "payload": {
+      "place": "los angeles"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to los angeles",
+    "intent": "go_to",
+    "payload": {
+      "place": "los angeles"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to los angeles",
+    "intent": "go_to",
+    "payload": {
+      "place": "los angeles"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me los angeles",
+    "intent": "go_to",
+    "payload": {
+      "place": "los angeles"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is los angeles",
+    "intent": "go_to",
+    "payload": {
+      "place": "los angeles"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find los angeles",
+    "intent": "go_to",
+    "payload": {
+      "place": "los angeles"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open los angeles",
+    "intent": "go_to",
+    "payload": {
+      "place": "los angeles"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to chicago",
+    "intent": "go_to",
+    "payload": {
+      "place": "chicago"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to chicago",
+    "intent": "go_to",
+    "payload": {
+      "place": "chicago"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to chicago",
+    "intent": "go_to",
+    "payload": {
+      "place": "chicago"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to chicago",
+    "intent": "go_to",
+    "payload": {
+      "place": "chicago"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to chicago",
+    "intent": "go_to",
+    "payload": {
+      "place": "chicago"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me chicago",
+    "intent": "go_to",
+    "payload": {
+      "place": "chicago"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is chicago",
+    "intent": "go_to",
+    "payload": {
+      "place": "chicago"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find chicago",
+    "intent": "go_to",
+    "payload": {
+      "place": "chicago"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open chicago",
+    "intent": "go_to",
+    "payload": {
+      "place": "chicago"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to toronto",
+    "intent": "go_to",
+    "payload": {
+      "place": "toronto"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to toronto",
+    "intent": "go_to",
+    "payload": {
+      "place": "toronto"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to toronto",
+    "intent": "go_to",
+    "payload": {
+      "place": "toronto"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to toronto",
+    "intent": "go_to",
+    "payload": {
+      "place": "toronto"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to toronto",
+    "intent": "go_to",
+    "payload": {
+      "place": "toronto"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me toronto",
+    "intent": "go_to",
+    "payload": {
+      "place": "toronto"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is toronto",
+    "intent": "go_to",
+    "payload": {
+      "place": "toronto"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find toronto",
+    "intent": "go_to",
+    "payload": {
+      "place": "toronto"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open toronto",
+    "intent": "go_to",
+    "payload": {
+      "place": "toronto"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to dubai",
+    "intent": "go_to",
+    "payload": {
+      "place": "dubai"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to dubai",
+    "intent": "go_to",
+    "payload": {
+      "place": "dubai"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to dubai",
+    "intent": "go_to",
+    "payload": {
+      "place": "dubai"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to dubai",
+    "intent": "go_to",
+    "payload": {
+      "place": "dubai"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to dubai",
+    "intent": "go_to",
+    "payload": {
+      "place": "dubai"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me dubai",
+    "intent": "go_to",
+    "payload": {
+      "place": "dubai"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is dubai",
+    "intent": "go_to",
+    "payload": {
+      "place": "dubai"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find dubai",
+    "intent": "go_to",
+    "payload": {
+      "place": "dubai"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open dubai",
+    "intent": "go_to",
+    "payload": {
+      "place": "dubai"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to singapore",
+    "intent": "go_to",
+    "payload": {
+      "place": "singapore"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to singapore",
+    "intent": "go_to",
+    "payload": {
+      "place": "singapore"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to singapore",
+    "intent": "go_to",
+    "payload": {
+      "place": "singapore"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to singapore",
+    "intent": "go_to",
+    "payload": {
+      "place": "singapore"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to singapore",
+    "intent": "go_to",
+    "payload": {
+      "place": "singapore"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me singapore",
+    "intent": "go_to",
+    "payload": {
+      "place": "singapore"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is singapore",
+    "intent": "go_to",
+    "payload": {
+      "place": "singapore"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find singapore",
+    "intent": "go_to",
+    "payload": {
+      "place": "singapore"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open singapore",
+    "intent": "go_to",
+    "payload": {
+      "place": "singapore"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to cairo",
+    "intent": "go_to",
+    "payload": {
+      "place": "cairo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to cairo",
+    "intent": "go_to",
+    "payload": {
+      "place": "cairo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to cairo",
+    "intent": "go_to",
+    "payload": {
+      "place": "cairo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to cairo",
+    "intent": "go_to",
+    "payload": {
+      "place": "cairo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to cairo",
+    "intent": "go_to",
+    "payload": {
+      "place": "cairo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me cairo",
+    "intent": "go_to",
+    "payload": {
+      "place": "cairo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is cairo",
+    "intent": "go_to",
+    "payload": {
+      "place": "cairo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find cairo",
+    "intent": "go_to",
+    "payload": {
+      "place": "cairo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open cairo",
+    "intent": "go_to",
+    "payload": {
+      "place": "cairo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to lagos",
+    "intent": "go_to",
+    "payload": {
+      "place": "lagos"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to lagos",
+    "intent": "go_to",
+    "payload": {
+      "place": "lagos"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to lagos",
+    "intent": "go_to",
+    "payload": {
+      "place": "lagos"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to lagos",
+    "intent": "go_to",
+    "payload": {
+      "place": "lagos"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to lagos",
+    "intent": "go_to",
+    "payload": {
+      "place": "lagos"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me lagos",
+    "intent": "go_to",
+    "payload": {
+      "place": "lagos"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is lagos",
+    "intent": "go_to",
+    "payload": {
+      "place": "lagos"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find lagos",
+    "intent": "go_to",
+    "payload": {
+      "place": "lagos"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open lagos",
+    "intent": "go_to",
+    "payload": {
+      "place": "lagos"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to nairobi",
+    "intent": "go_to",
+    "payload": {
+      "place": "nairobi"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to nairobi",
+    "intent": "go_to",
+    "payload": {
+      "place": "nairobi"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to nairobi",
+    "intent": "go_to",
+    "payload": {
+      "place": "nairobi"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to nairobi",
+    "intent": "go_to",
+    "payload": {
+      "place": "nairobi"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to nairobi",
+    "intent": "go_to",
+    "payload": {
+      "place": "nairobi"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me nairobi",
+    "intent": "go_to",
+    "payload": {
+      "place": "nairobi"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is nairobi",
+    "intent": "go_to",
+    "payload": {
+      "place": "nairobi"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find nairobi",
+    "intent": "go_to",
+    "payload": {
+      "place": "nairobi"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open nairobi",
+    "intent": "go_to",
+    "payload": {
+      "place": "nairobi"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to sao paulo",
+    "intent": "go_to",
+    "payload": {
+      "place": "sao paulo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to sao paulo",
+    "intent": "go_to",
+    "payload": {
+      "place": "sao paulo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to sao paulo",
+    "intent": "go_to",
+    "payload": {
+      "place": "sao paulo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to sao paulo",
+    "intent": "go_to",
+    "payload": {
+      "place": "sao paulo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to sao paulo",
+    "intent": "go_to",
+    "payload": {
+      "place": "sao paulo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me sao paulo",
+    "intent": "go_to",
+    "payload": {
+      "place": "sao paulo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is sao paulo",
+    "intent": "go_to",
+    "payload": {
+      "place": "sao paulo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find sao paulo",
+    "intent": "go_to",
+    "payload": {
+      "place": "sao paulo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open sao paulo",
+    "intent": "go_to",
+    "payload": {
+      "place": "sao paulo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to buenos aires",
+    "intent": "go_to",
+    "payload": {
+      "place": "buenos aires"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to buenos aires",
+    "intent": "go_to",
+    "payload": {
+      "place": "buenos aires"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to buenos aires",
+    "intent": "go_to",
+    "payload": {
+      "place": "buenos aires"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to buenos aires",
+    "intent": "go_to",
+    "payload": {
+      "place": "buenos aires"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to buenos aires",
+    "intent": "go_to",
+    "payload": {
+      "place": "buenos aires"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me buenos aires",
+    "intent": "go_to",
+    "payload": {
+      "place": "buenos aires"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is buenos aires",
+    "intent": "go_to",
+    "payload": {
+      "place": "buenos aires"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find buenos aires",
+    "intent": "go_to",
+    "payload": {
+      "place": "buenos aires"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open buenos aires",
+    "intent": "go_to",
+    "payload": {
+      "place": "buenos aires"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to mexico city",
+    "intent": "go_to",
+    "payload": {
+      "place": "mexico city"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to mexico city",
+    "intent": "go_to",
+    "payload": {
+      "place": "mexico city"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to mexico city",
+    "intent": "go_to",
+    "payload": {
+      "place": "mexico city"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to mexico city",
+    "intent": "go_to",
+    "payload": {
+      "place": "mexico city"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to mexico city",
+    "intent": "go_to",
+    "payload": {
+      "place": "mexico city"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me mexico city",
+    "intent": "go_to",
+    "payload": {
+      "place": "mexico city"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is mexico city",
+    "intent": "go_to",
+    "payload": {
+      "place": "mexico city"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find mexico city",
+    "intent": "go_to",
+    "payload": {
+      "place": "mexico city"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open mexico city",
+    "intent": "go_to",
+    "payload": {
+      "place": "mexico city"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to bangalore",
+    "intent": "go_to",
+    "payload": {
+      "place": "bangalore"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to bangalore",
+    "intent": "go_to",
+    "payload": {
+      "place": "bangalore"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to bangalore",
+    "intent": "go_to",
+    "payload": {
+      "place": "bangalore"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to bangalore",
+    "intent": "go_to",
+    "payload": {
+      "place": "bangalore"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to bangalore",
+    "intent": "go_to",
+    "payload": {
+      "place": "bangalore"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me bangalore",
+    "intent": "go_to",
+    "payload": {
+      "place": "bangalore"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is bangalore",
+    "intent": "go_to",
+    "payload": {
+      "place": "bangalore"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find bangalore",
+    "intent": "go_to",
+    "payload": {
+      "place": "bangalore"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open bangalore",
+    "intent": "go_to",
+    "payload": {
+      "place": "bangalore"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to kolkata",
+    "intent": "go_to",
+    "payload": {
+      "place": "kolkata"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to kolkata",
+    "intent": "go_to",
+    "payload": {
+      "place": "kolkata"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to kolkata",
+    "intent": "go_to",
+    "payload": {
+      "place": "kolkata"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to kolkata",
+    "intent": "go_to",
+    "payload": {
+      "place": "kolkata"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to kolkata",
+    "intent": "go_to",
+    "payload": {
+      "place": "kolkata"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me kolkata",
+    "intent": "go_to",
+    "payload": {
+      "place": "kolkata"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is kolkata",
+    "intent": "go_to",
+    "payload": {
+      "place": "kolkata"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find kolkata",
+    "intent": "go_to",
+    "payload": {
+      "place": "kolkata"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open kolkata",
+    "intent": "go_to",
+    "payload": {
+      "place": "kolkata"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to chennai",
+    "intent": "go_to",
+    "payload": {
+      "place": "chennai"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to chennai",
+    "intent": "go_to",
+    "payload": {
+      "place": "chennai"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to chennai",
+    "intent": "go_to",
+    "payload": {
+      "place": "chennai"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to chennai",
+    "intent": "go_to",
+    "payload": {
+      "place": "chennai"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to chennai",
+    "intent": "go_to",
+    "payload": {
+      "place": "chennai"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me chennai",
+    "intent": "go_to",
+    "payload": {
+      "place": "chennai"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is chennai",
+    "intent": "go_to",
+    "payload": {
+      "place": "chennai"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find chennai",
+    "intent": "go_to",
+    "payload": {
+      "place": "chennai"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open chennai",
+    "intent": "go_to",
+    "payload": {
+      "place": "chennai"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to hyderabad",
+    "intent": "go_to",
+    "payload": {
+      "place": "hyderabad"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to hyderabad",
+    "intent": "go_to",
+    "payload": {
+      "place": "hyderabad"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to hyderabad",
+    "intent": "go_to",
+    "payload": {
+      "place": "hyderabad"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to hyderabad",
+    "intent": "go_to",
+    "payload": {
+      "place": "hyderabad"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to hyderabad",
+    "intent": "go_to",
+    "payload": {
+      "place": "hyderabad"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me hyderabad",
+    "intent": "go_to",
+    "payload": {
+      "place": "hyderabad"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is hyderabad",
+    "intent": "go_to",
+    "payload": {
+      "place": "hyderabad"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find hyderabad",
+    "intent": "go_to",
+    "payload": {
+      "place": "hyderabad"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open hyderabad",
+    "intent": "go_to",
+    "payload": {
+      "place": "hyderabad"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to pune",
+    "intent": "go_to",
+    "payload": {
+      "place": "pune"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to pune",
+    "intent": "go_to",
+    "payload": {
+      "place": "pune"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to pune",
+    "intent": "go_to",
+    "payload": {
+      "place": "pune"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to pune",
+    "intent": "go_to",
+    "payload": {
+      "place": "pune"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to pune",
+    "intent": "go_to",
+    "payload": {
+      "place": "pune"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me pune",
+    "intent": "go_to",
+    "payload": {
+      "place": "pune"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is pune",
+    "intent": "go_to",
+    "payload": {
+      "place": "pune"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find pune",
+    "intent": "go_to",
+    "payload": {
+      "place": "pune"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open pune",
+    "intent": "go_to",
+    "payload": {
+      "place": "pune"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to rome",
+    "intent": "go_to",
+    "payload": {
+      "place": "rome"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to rome",
+    "intent": "go_to",
+    "payload": {
+      "place": "rome"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to rome",
+    "intent": "go_to",
+    "payload": {
+      "place": "rome"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to rome",
+    "intent": "go_to",
+    "payload": {
+      "place": "rome"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to rome",
+    "intent": "go_to",
+    "payload": {
+      "place": "rome"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me rome",
+    "intent": "go_to",
+    "payload": {
+      "place": "rome"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is rome",
+    "intent": "go_to",
+    "payload": {
+      "place": "rome"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find rome",
+    "intent": "go_to",
+    "payload": {
+      "place": "rome"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open rome",
+    "intent": "go_to",
+    "payload": {
+      "place": "rome"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to madrid",
+    "intent": "go_to",
+    "payload": {
+      "place": "madrid"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to madrid",
+    "intent": "go_to",
+    "payload": {
+      "place": "madrid"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to madrid",
+    "intent": "go_to",
+    "payload": {
+      "place": "madrid"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to madrid",
+    "intent": "go_to",
+    "payload": {
+      "place": "madrid"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to madrid",
+    "intent": "go_to",
+    "payload": {
+      "place": "madrid"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me madrid",
+    "intent": "go_to",
+    "payload": {
+      "place": "madrid"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is madrid",
+    "intent": "go_to",
+    "payload": {
+      "place": "madrid"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find madrid",
+    "intent": "go_to",
+    "payload": {
+      "place": "madrid"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open madrid",
+    "intent": "go_to",
+    "payload": {
+      "place": "madrid"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to amsterdam",
+    "intent": "go_to",
+    "payload": {
+      "place": "amsterdam"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to amsterdam",
+    "intent": "go_to",
+    "payload": {
+      "place": "amsterdam"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to amsterdam",
+    "intent": "go_to",
+    "payload": {
+      "place": "amsterdam"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to amsterdam",
+    "intent": "go_to",
+    "payload": {
+      "place": "amsterdam"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to amsterdam",
+    "intent": "go_to",
+    "payload": {
+      "place": "amsterdam"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me amsterdam",
+    "intent": "go_to",
+    "payload": {
+      "place": "amsterdam"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is amsterdam",
+    "intent": "go_to",
+    "payload": {
+      "place": "amsterdam"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find amsterdam",
+    "intent": "go_to",
+    "payload": {
+      "place": "amsterdam"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open amsterdam",
+    "intent": "go_to",
+    "payload": {
+      "place": "amsterdam"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to stockholm",
+    "intent": "go_to",
+    "payload": {
+      "place": "stockholm"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to stockholm",
+    "intent": "go_to",
+    "payload": {
+      "place": "stockholm"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to stockholm",
+    "intent": "go_to",
+    "payload": {
+      "place": "stockholm"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to stockholm",
+    "intent": "go_to",
+    "payload": {
+      "place": "stockholm"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to stockholm",
+    "intent": "go_to",
+    "payload": {
+      "place": "stockholm"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me stockholm",
+    "intent": "go_to",
+    "payload": {
+      "place": "stockholm"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is stockholm",
+    "intent": "go_to",
+    "payload": {
+      "place": "stockholm"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find stockholm",
+    "intent": "go_to",
+    "payload": {
+      "place": "stockholm"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open stockholm",
+    "intent": "go_to",
+    "payload": {
+      "place": "stockholm"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to oslo",
+    "intent": "go_to",
+    "payload": {
+      "place": "oslo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to oslo",
+    "intent": "go_to",
+    "payload": {
+      "place": "oslo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to oslo",
+    "intent": "go_to",
+    "payload": {
+      "place": "oslo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to oslo",
+    "intent": "go_to",
+    "payload": {
+      "place": "oslo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to oslo",
+    "intent": "go_to",
+    "payload": {
+      "place": "oslo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me oslo",
+    "intent": "go_to",
+    "payload": {
+      "place": "oslo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is oslo",
+    "intent": "go_to",
+    "payload": {
+      "place": "oslo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find oslo",
+    "intent": "go_to",
+    "payload": {
+      "place": "oslo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open oslo",
+    "intent": "go_to",
+    "payload": {
+      "place": "oslo"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to seoul",
+    "intent": "go_to",
+    "payload": {
+      "place": "seoul"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to seoul",
+    "intent": "go_to",
+    "payload": {
+      "place": "seoul"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to seoul",
+    "intent": "go_to",
+    "payload": {
+      "place": "seoul"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to seoul",
+    "intent": "go_to",
+    "payload": {
+      "place": "seoul"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to seoul",
+    "intent": "go_to",
+    "payload": {
+      "place": "seoul"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me seoul",
+    "intent": "go_to",
+    "payload": {
+      "place": "seoul"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is seoul",
+    "intent": "go_to",
+    "payload": {
+      "place": "seoul"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find seoul",
+    "intent": "go_to",
+    "payload": {
+      "place": "seoul"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open seoul",
+    "intent": "go_to",
+    "payload": {
+      "place": "seoul"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to kuala lumpur",
+    "intent": "go_to",
+    "payload": {
+      "place": "kuala lumpur"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to kuala lumpur",
+    "intent": "go_to",
+    "payload": {
+      "place": "kuala lumpur"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to kuala lumpur",
+    "intent": "go_to",
+    "payload": {
+      "place": "kuala lumpur"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to kuala lumpur",
+    "intent": "go_to",
+    "payload": {
+      "place": "kuala lumpur"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to kuala lumpur",
+    "intent": "go_to",
+    "payload": {
+      "place": "kuala lumpur"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me kuala lumpur",
+    "intent": "go_to",
+    "payload": {
+      "place": "kuala lumpur"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is kuala lumpur",
+    "intent": "go_to",
+    "payload": {
+      "place": "kuala lumpur"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find kuala lumpur",
+    "intent": "go_to",
+    "payload": {
+      "place": "kuala lumpur"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open kuala lumpur",
+    "intent": "go_to",
+    "payload": {
+      "place": "kuala lumpur"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to bangkok",
+    "intent": "go_to",
+    "payload": {
+      "place": "bangkok"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to bangkok",
+    "intent": "go_to",
+    "payload": {
+      "place": "bangkok"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to bangkok",
+    "intent": "go_to",
+    "payload": {
+      "place": "bangkok"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to bangkok",
+    "intent": "go_to",
+    "payload": {
+      "place": "bangkok"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to bangkok",
+    "intent": "go_to",
+    "payload": {
+      "place": "bangkok"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me bangkok",
+    "intent": "go_to",
+    "payload": {
+      "place": "bangkok"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is bangkok",
+    "intent": "go_to",
+    "payload": {
+      "place": "bangkok"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find bangkok",
+    "intent": "go_to",
+    "payload": {
+      "place": "bangkok"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open bangkok",
+    "intent": "go_to",
+    "payload": {
+      "place": "bangkok"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to jakarta",
+    "intent": "go_to",
+    "payload": {
+      "place": "jakarta"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to jakarta",
+    "intent": "go_to",
+    "payload": {
+      "place": "jakarta"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to jakarta",
+    "intent": "go_to",
+    "payload": {
+      "place": "jakarta"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to jakarta",
+    "intent": "go_to",
+    "payload": {
+      "place": "jakarta"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to jakarta",
+    "intent": "go_to",
+    "payload": {
+      "place": "jakarta"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me jakarta",
+    "intent": "go_to",
+    "payload": {
+      "place": "jakarta"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is jakarta",
+    "intent": "go_to",
+    "payload": {
+      "place": "jakarta"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find jakarta",
+    "intent": "go_to",
+    "payload": {
+      "place": "jakarta"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open jakarta",
+    "intent": "go_to",
+    "payload": {
+      "place": "jakarta"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to manila",
+    "intent": "go_to",
+    "payload": {
+      "place": "manila"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to manila",
+    "intent": "go_to",
+    "payload": {
+      "place": "manila"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to manila",
+    "intent": "go_to",
+    "payload": {
+      "place": "manila"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to manila",
+    "intent": "go_to",
+    "payload": {
+      "place": "manila"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to manila",
+    "intent": "go_to",
+    "payload": {
+      "place": "manila"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me manila",
+    "intent": "go_to",
+    "payload": {
+      "place": "manila"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is manila",
+    "intent": "go_to",
+    "payload": {
+      "place": "manila"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find manila",
+    "intent": "go_to",
+    "payload": {
+      "place": "manila"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open manila",
+    "intent": "go_to",
+    "payload": {
+      "place": "manila"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to karachi",
+    "intent": "go_to",
+    "payload": {
+      "place": "karachi"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to karachi",
+    "intent": "go_to",
+    "payload": {
+      "place": "karachi"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to karachi",
+    "intent": "go_to",
+    "payload": {
+      "place": "karachi"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to karachi",
+    "intent": "go_to",
+    "payload": {
+      "place": "karachi"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to karachi",
+    "intent": "go_to",
+    "payload": {
+      "place": "karachi"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me karachi",
+    "intent": "go_to",
+    "payload": {
+      "place": "karachi"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is karachi",
+    "intent": "go_to",
+    "payload": {
+      "place": "karachi"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find karachi",
+    "intent": "go_to",
+    "payload": {
+      "place": "karachi"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open karachi",
+    "intent": "go_to",
+    "payload": {
+      "place": "karachi"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to dhaka",
+    "intent": "go_to",
+    "payload": {
+      "place": "dhaka"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to dhaka",
+    "intent": "go_to",
+    "payload": {
+      "place": "dhaka"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to dhaka",
+    "intent": "go_to",
+    "payload": {
+      "place": "dhaka"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to dhaka",
+    "intent": "go_to",
+    "payload": {
+      "place": "dhaka"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to dhaka",
+    "intent": "go_to",
+    "payload": {
+      "place": "dhaka"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me dhaka",
+    "intent": "go_to",
+    "payload": {
+      "place": "dhaka"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is dhaka",
+    "intent": "go_to",
+    "payload": {
+      "place": "dhaka"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find dhaka",
+    "intent": "go_to",
+    "payload": {
+      "place": "dhaka"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open dhaka",
+    "intent": "go_to",
+    "payload": {
+      "place": "dhaka"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to tehran",
+    "intent": "go_to",
+    "payload": {
+      "place": "tehran"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to tehran",
+    "intent": "go_to",
+    "payload": {
+      "place": "tehran"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to tehran",
+    "intent": "go_to",
+    "payload": {
+      "place": "tehran"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to tehran",
+    "intent": "go_to",
+    "payload": {
+      "place": "tehran"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to tehran",
+    "intent": "go_to",
+    "payload": {
+      "place": "tehran"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me tehran",
+    "intent": "go_to",
+    "payload": {
+      "place": "tehran"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is tehran",
+    "intent": "go_to",
+    "payload": {
+      "place": "tehran"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find tehran",
+    "intent": "go_to",
+    "payload": {
+      "place": "tehran"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open tehran",
+    "intent": "go_to",
+    "payload": {
+      "place": "tehran"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to istanbul",
+    "intent": "go_to",
+    "payload": {
+      "place": "istanbul"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to istanbul",
+    "intent": "go_to",
+    "payload": {
+      "place": "istanbul"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to istanbul",
+    "intent": "go_to",
+    "payload": {
+      "place": "istanbul"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to istanbul",
+    "intent": "go_to",
+    "payload": {
+      "place": "istanbul"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to istanbul",
+    "intent": "go_to",
+    "payload": {
+      "place": "istanbul"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me istanbul",
+    "intent": "go_to",
+    "payload": {
+      "place": "istanbul"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is istanbul",
+    "intent": "go_to",
+    "payload": {
+      "place": "istanbul"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find istanbul",
+    "intent": "go_to",
+    "payload": {
+      "place": "istanbul"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open istanbul",
+    "intent": "go_to",
+    "payload": {
+      "place": "istanbul"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to accra",
+    "intent": "go_to",
+    "payload": {
+      "place": "accra"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to accra",
+    "intent": "go_to",
+    "payload": {
+      "place": "accra"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to accra",
+    "intent": "go_to",
+    "payload": {
+      "place": "accra"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to accra",
+    "intent": "go_to",
+    "payload": {
+      "place": "accra"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to accra",
+    "intent": "go_to",
+    "payload": {
+      "place": "accra"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me accra",
+    "intent": "go_to",
+    "payload": {
+      "place": "accra"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is accra",
+    "intent": "go_to",
+    "payload": {
+      "place": "accra"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find accra",
+    "intent": "go_to",
+    "payload": {
+      "place": "accra"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open accra",
+    "intent": "go_to",
+    "payload": {
+      "place": "accra"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to cape town",
+    "intent": "go_to",
+    "payload": {
+      "place": "cape town"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to cape town",
+    "intent": "go_to",
+    "payload": {
+      "place": "cape town"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to cape town",
+    "intent": "go_to",
+    "payload": {
+      "place": "cape town"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to cape town",
+    "intent": "go_to",
+    "payload": {
+      "place": "cape town"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to cape town",
+    "intent": "go_to",
+    "payload": {
+      "place": "cape town"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me cape town",
+    "intent": "go_to",
+    "payload": {
+      "place": "cape town"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is cape town",
+    "intent": "go_to",
+    "payload": {
+      "place": "cape town"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find cape town",
+    "intent": "go_to",
+    "payload": {
+      "place": "cape town"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open cape town",
+    "intent": "go_to",
+    "payload": {
+      "place": "cape town"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to johannesburg",
+    "intent": "go_to",
+    "payload": {
+      "place": "johannesburg"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "go to johannesburg",
+    "intent": "go_to",
+    "payload": {
+      "place": "johannesburg"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "zoom to johannesburg",
+    "intent": "go_to",
+    "payload": {
+      "place": "johannesburg"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "fly to johannesburg",
+    "intent": "go_to",
+    "payload": {
+      "place": "johannesburg"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "navigate to johannesburg",
+    "intent": "go_to",
+    "payload": {
+      "place": "johannesburg"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "show me johannesburg",
+    "intent": "go_to",
+    "payload": {
+      "place": "johannesburg"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "where is johannesburg",
+    "intent": "go_to",
+    "payload": {
+      "place": "johannesburg"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "find johannesburg",
+    "intent": "go_to",
+    "payload": {
+      "place": "johannesburg"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "open johannesburg",
+    "intent": "go_to",
+    "payload": {
+      "place": "johannesburg"
+    },
+    "category": "Navigation (go_to)"
+  },
+  {
+    "text": "take me to pariz",
+    "intent": "go_to",
+    "payload": {
+      "place": "paris"
+    },
+    "category": "Typo Resilience"
+  },
+  {
+    "text": "pari",
+    "intent": "go_to",
+    "payload": {
+      "place": "paris"
+    },
+    "category": "Typo Resilience"
+  },
+  {
+    "text": "go to pparis",
+    "intent": "go_to",
+    "payload": {
+      "place": "paris"
+    },
+    "category": "Typo Resilience"
+  },
+  {
+    "text": "new yorck",
+    "intent": "go_to",
+    "payload": {
+      "place": "new york"
+    },
+    "category": "Typo Resilience"
+  },
+  {
+    "text": "nw york",
+    "intent": "go_to",
+    "payload": {
+      "place": "new york"
+    },
+    "category": "Typo Resilience"
+  },
+  {
+    "text": "amstrdam",
+    "intent": "go_to",
+    "payload": {
+      "place": "amsterdam"
+    },
+    "category": "Typo Resilience"
+  },
+  {
+    "text": "amsterdan",
+    "intent": "go_to",
+    "payload": {
+      "place": "amsterdam"
+    },
+    "category": "Typo Resilience"
+  },
+  {
+    "text": "show osm",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "osm"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "turn on osm",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "osm"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "display osm",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "osm"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "open street map",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "osm"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "show the streets",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "osm"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "road view",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "osm"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "add openstreetmap layer",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "osm"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "show road",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "osm"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "enable road view",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "osm"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "show satellite",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "nasa"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "satellite view",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "nasa"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "nasa layer",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "nasa"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "satellite please",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "nasa"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "turn on satellite",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "nasa"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "display nasa satellite",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "nasa"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "show me satellite map",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "nasa"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "show bhuvan",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "bhuvan"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "india map",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "bhuvan"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "nrsc layer",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "bhuvan"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "turn on india map",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "bhuvan"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "show copernicus",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "copernicus"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "land cover",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "copernicus"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "enable land layer",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "copernicus"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "show terrain",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "terrain"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "topo map",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "terrain"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "topographic",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "terrain"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "turn on terrain",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "terrain"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "hide osm",
+    "intent": "hide_layer",
+    "payload": {
+      "layerId": "osm"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "turn off osm",
+    "intent": "hide_layer",
+    "payload": {
+      "layerId": "osm"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "remove road view",
+    "intent": "hide_layer",
+    "payload": {
+      "layerId": "osm"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "disable open street map",
+    "intent": "hide_layer",
+    "payload": {
+      "layerId": "osm"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "hide satellite",
+    "intent": "hide_layer",
+    "payload": {
+      "layerId": "nasa"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "turn off satellite",
+    "intent": "hide_layer",
+    "payload": {
+      "layerId": "nasa"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "remove nasa layer",
+    "intent": "hide_layer",
+    "payload": {
+      "layerId": "nasa"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "hide terrain",
+    "intent": "hide_layer",
+    "payload": {
+      "layerId": "terrain"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "turn off topo",
+    "intent": "hide_layer",
+    "payload": {
+      "layerId": "terrain"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "disable terrain view",
+    "intent": "hide_layer",
+    "payload": {
+      "layerId": "terrain"
+    },
+    "category": "Layer Control"
+  },
+  {
+    "text": "show sattelite",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "nasa"
+    },
+    "category": "Typo Resilience"
+  },
+  {
+    "text": "satelite view",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "nasa"
+    },
+    "category": "Typo Resilience"
+  },
+  {
+    "text": "satelitte",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "nasa"
+    },
+    "category": "Typo Resilience"
+  },
+  {
+    "text": "show terain",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "terrain"
+    },
+    "category": "Typo Resilience"
+  },
+  {
+    "text": "topografic",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "terrain"
+    },
+    "category": "Typo Resilience"
+  },
+  {
+    "text": "add marker",
+    "intent": "add_marker",
+    "payload": {
+      "useCurrentLocation": false
+    },
+    "category": "Marker Commands"
+  },
+  {
+    "text": "drop a pin",
+    "intent": "add_marker",
+    "payload": {
+      "useCurrentLocation": false
+    },
+    "category": "Marker Commands"
+  },
+  {
+    "text": "place a marker",
+    "intent": "add_marker",
+    "payload": {
+      "useCurrentLocation": false
+    },
+    "category": "Marker Commands"
+  },
+  {
+    "text": "put a pin here",
+    "intent": "add_marker",
+    "payload": {
+      "useCurrentLocation": false
+    },
+    "category": "Marker Commands"
+  },
+  {
+    "text": "set a marker",
+    "intent": "add_marker",
+    "payload": {
+      "useCurrentLocation": false
+    },
+    "category": "Marker Commands"
+  },
+  {
+    "text": "add marker at my location",
+    "intent": "add_marker",
+    "payload": {
+      "useCurrentLocation": true
+    },
+    "category": "Marker Commands"
+  },
+  {
+    "text": "drop a pin here",
+    "intent": "add_marker",
+    "payload": {
+      "useCurrentLocation": true
+    },
+    "category": "Marker Commands"
+  },
+  {
+    "text": "place marker at my current location",
+    "intent": "add_marker",
+    "payload": {
+      "useCurrentLocation": true
+    },
+    "category": "Marker Commands"
+  },
+  {
+    "text": "add marker here",
+    "intent": "add_marker",
+    "payload": {
+      "useCurrentLocation": true
+    },
+    "category": "Marker Commands"
+  },
+  {
+    "text": "reset view",
+    "intent": "reset_view",
+    "payload": {},
+    "category": "Reset View"
+  },
+  {
+    "text": "go home",
+    "intent": "reset_view",
+    "payload": {},
+    "category": "Reset View"
+  },
+  {
+    "text": "default view",
+    "intent": "reset_view",
+    "payload": {},
+    "category": "Reset View"
+  },
+  {
+    "text": "reset map",
+    "intent": "reset_view",
+    "payload": {},
+    "category": "Reset View"
+  },
+  {
+    "text": "home",
+    "intent": "reset_view",
+    "payload": {},
+    "category": "Reset View"
+  },
+  {
+    "text": "back to default",
+    "intent": "reset_view",
+    "payload": {},
+    "category": "Reset View"
+  },
+  {
+    "text": "switch to openlayers",
+    "intent": "switch_map",
+    "payload": {
+      "engine": "openlayers"
+    },
+    "category": "Switch Map"
+  },
+  {
+    "text": "use openlayers",
+    "intent": "switch_map",
+    "payload": {
+      "engine": "openlayers"
+    },
+    "category": "Switch Map"
+  },
+  {
+    "text": "openlayers map",
+    "intent": "switch_map",
+    "payload": {
+      "engine": "openlayers"
+    },
+    "category": "Switch Map"
+  },
+  {
+    "text": "change to open layers",
+    "intent": "switch_map",
+    "payload": {
+      "engine": "openlayers"
+    },
+    "category": "Switch Map"
+  },
+  {
+    "text": "switch to leaflet",
+    "intent": "switch_map",
+    "payload": {
+      "engine": "leaflet"
+    },
+    "category": "Switch Map"
+  },
+  {
+    "text": "use leaflet",
+    "intent": "switch_map",
+    "payload": {
+      "engine": "leaflet"
+    },
+    "category": "Switch Map"
+  },
+  {
+    "text": "leaflet map",
+    "intent": "switch_map",
+    "payload": {
+      "engine": "leaflet"
+    },
+    "category": "Switch Map"
+  },
+  {
+    "text": "change to leaflet",
+    "intent": "switch_map",
+    "payload": {
+      "engine": "leaflet"
+    },
+    "category": "Switch Map"
+  },
+  {
+    "text": "could you please zoom in a bit",
+    "intent": "zoom_in",
+    "payload": {},
+    "category": "Conversational"
+  },
+  {
+    "text": "i would like to get a closer look",
+    "intent": "zoom_in",
+    "payload": {},
+    "category": "Conversational"
+  },
+  {
+    "text": "let us zoom in",
+    "intent": "zoom_in",
+    "payload": {},
+    "category": "Conversational"
+  },
+  {
+    "text": "i want to see the satellite map now",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "nasa"
+    },
+    "category": "Conversational"
+  },
+  {
+    "text": "can you switch to satellite view please",
+    "intent": "show_layer",
+    "payload": {
+      "layerId": "nasa"
+    },
+    "category": "Conversational"
+  },
+  {
+    "text": "i feel like going to tokyo today",
+    "intent": "go_to",
+    "payload": {
+      "place": "tokyo"
+    },
+    "category": "Conversational"
+  },
+  {
+    "text": "take me to tokyo if you can",
+    "intent": "go_to",
+    "payload": {
+      "place": "tokyo"
+    },
+    "category": "Conversational"
+  },
+  {
+    "text": "",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": " ",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "12345",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "!@#$%",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "bla bla random text",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "what is the weather like",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "hello world",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "do a barrel roll",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "play some music",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "undefined",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "null",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 0",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 1",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 2",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 3",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 4",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 5",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 6",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 7",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 8",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 9",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 10",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 11",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 12",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 13",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 14",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 15",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 16",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 17",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 18",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 19",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 20",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 21",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 22",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 23",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 24",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 25",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 26",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 27",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 28",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  },
+  {
+    "text": "random utterance 29",
+    "intent": "unknown",
+    "payload": {},
+    "category": "Edge Cases"
+  }
 ]

@@ -34,3 +34,6 @@ export { OpenLayersAdapter } from './map/OpenLayersAdapter.js';
 
 // Evaluation & metrics
 export { EvaluationTracker } from './evaluation/index.js';
+
+// History & undo
+export { CommandHistory } from './history/index.js';

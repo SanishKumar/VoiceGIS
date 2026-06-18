@@ -10,6 +10,7 @@
 import { SpeechEngine, ENGINE_TYPE } from './engines/index.js';
 import { parseCommand, defaultGeocoder, INTENT } from './parser/index.js';
 import { MapController, MAP_ENGINE } from './map/index.js';
+import { CommandHistory } from './history/index.js';
 
 export class VoiceGIS {
   /**
@@ -31,6 +32,7 @@ export class VoiceGIS {
       speechEngine: ENGINE_TYPE.WEB_SPEECH,
       autoExecute: true,
       enableGeocoding: true,
+      enableHistory: true,
       ...options,
     };
 
@@ -42,6 +44,9 @@ export class VoiceGIS {
 
     /** @type {Array<{ intent: string, pattern: RegExp, action: function }>} Custom commands */
     this.customCommands = [];
+    
+    /** @type {CommandHistory|null} */
+    this.history = this.options.enableHistory ? new CommandHistory() : null;
     
     // Auto-initialize map if a container was provided
     if (this.options.mapContainerId) {
@@ -214,6 +219,16 @@ export class VoiceGIS {
    * Execute built-in map actions.
    */
   _executeBuiltIn(result) {
+    // Determine if command modifies the map view
+    const isStatefulCommand = [
+      INTENT.ZOOM_IN, INTENT.ZOOM_OUT, INTENT.GO_TO, 
+      INTENT.ADD_MARKER, INTENT.RESET_VIEW
+    ].includes(result.intent);
+
+    if (isStatefulCommand && this.history) {
+      this.history.snapshot(this.map);
+    }
+
     switch (result.intent) {
       case INTENT.ZOOM_IN:
         this.map.zoomIn();
@@ -243,6 +258,18 @@ export class VoiceGIS {
         break;
       case INTENT.SWITCH_MAP:
         console.warn('Map engine switching is not supported via auto-execute in the Orchestrator.');
+        break;
+      case INTENT.UNDO:
+        if (this.history) {
+          const success = this.history.undo(this.map);
+          if (!success) console.warn('Nothing to undo.');
+        }
+        break;
+      case INTENT.REDO:
+        if (this.history) {
+          const success = this.history.redo(this.map);
+          if (!success) console.warn('Nothing to redo.');
+        }
         break;
     }
   }

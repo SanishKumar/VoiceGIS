@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>LPU Campus Navigator - VoiceGIS Example</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    #map { height: 100vh; width: 100vw; z-index: 1; }
+    #overlay {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 15px 25px;
+      border-radius: 30px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    button {
+      background: #e63946;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background 0.3s;
+    }
+    button.active { background: #457b9d; }
+    #transcript { font-size: 16px; color: #1d3557; font-weight: 500; min-width: 200px; text-align: center; }
+    .leaflet-popup-content-wrapper { border-radius: 8px; }
+    .leaflet-popup-content b { color: #e63946; font-size: 16px; }
+  </style>
+</head>
+<body>
+
+<div id="overlay">
+  <button id="btn-voice">🎙️ Start Voice Command</button>
+  <div id="transcript">Try saying: "Take me to Uni Mall"</div>
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Import from local dist for the example, assuming it's built -->
+<script type="module">
+  import { VoiceGIS } from '../../src/VoiceGIS.js';
+
+  // LPU Campus coordinates
+  const LPU_CENTER = [31.2560, 75.7051];
+
+  async function init() {
+    // 1. Initialize VoiceGIS
+    const app = new VoiceGIS({
+      mapContainerId: 'map',
+      speechEngine: 'auto',
+      autoExecute: true,
+      enableHistory: true
+    });
+
+    // We manually set the view after init
+    app.map.goTo(LPU_CENTER, 16);
+    app.map.showLayer('osm');
+
+    let buildingsData = null;
+    let markersLayer = L.layerGroup().addTo(app.map._adapter.map);
+
+    // 2. Load Campus GeoJSON
+    try {
+      const res = await fetch('./lpu-campus.json');
+      buildingsData = await res.json();
+      
+      // Draw initial markers
+      buildingsData.features.forEach(f => {
+        const coords = [f.geometry.coordinates[1], f.geometry.coordinates[0]];
+        const popup = `<b>${f.properties.name}</b><br>${f.properties.description}`;
+        L.marker(coords).bindPopup(popup).addTo(markersLayer);
+      });
+    } catch (err) {
+      console.error("Failed to load campus data:", err);
+    }
+
+    // 3. Register Custom Domain Commands
+    // Command: "Take me to [Building Name]"
+    app.registerCommand('NAVIGATE_BUILDING', /(?:take me to|navigate to|where is) (.+)/i, (mapCtrl, match) => {
+      const target = match[1].toLowerCase().trim();
+      
+      if (!buildingsData) return;
+
+      // Find the best match
+      const building = buildingsData.features.find(f => 
+        f.properties.name.toLowerCase().includes(target) || 
+        target.includes(f.properties.name.toLowerCase())
+      );
+
+      if (building) {
+        const coords = [building.geometry.coordinates[1], building.geometry.coordinates[0]];
+        
+        // Take a snapshot for undo
+        app.history.snapshot(mapCtrl);
+
+        mapCtrl.goTo(coords, 18, building.properties.name);
+        
+        // Find and open the marker popup
+        markersLayer.eachLayer(layer => {
+          const latlng = layer.getLatLng();
+          if (latlng.lat === coords[0] && latlng.lng === coords[1]) {
+            setTimeout(() => layer.openPopup(), 500); // Wait for pan
+          }
+        });
+      } else {
+        document.getElementById('transcript').textContent = `Could not find building: ${match[1]}`;
+      }
+    });
+
+    // Command: "Show me academic blocks" / "Show me food"
+    app.registerCommand('FILTER_CATEGORY', /show(?: me)? (.+)(?: buildings| blocks)?/i, (mapCtrl, match) => {
+      const category = match[1].toLowerCase().trim();
+      
+      let filterType = '';
+      if (category.includes('academic') || category.includes('class')) filterType = 'academic';
+      if (category.includes('food') || category.includes('shop') || category.includes('mall')) filterType = 'commercial';
+      if (category.includes('event') || category.includes('auditorium')) filterType = 'event';
+
+      if (filterType) {
+        markersLayer.clearLayers();
+        buildingsData.features.filter(f => f.properties.category === filterType).forEach(f => {
+          const coords = [f.geometry.coordinates[1], f.geometry.coordinates[0]];
+          const popup = `<b>${f.properties.name}</b><br>${f.properties.description}`;
+          L.marker(coords).bindPopup(popup).addTo(markersLayer);
+        });
+      }
+    });
+
+    // 4. Hook up UI
+    const btn = document.getElementById('btn-voice');
+    const transcriptDiv = document.getElementById('transcript');
+
+    // Override the parsed callback to show the text
+    app.options.onCommandParsed = (result, raw) => {
+      transcriptDiv.textContent = `"${raw}" → [${result.intent}]`;
+    };
+
+    app.options.onStateChange = (state) => {
+      if (state === 'listening') {
+        btn.textContent = '🔴 Listening...';
+        btn.classList.add('active');
+        transcriptDiv.textContent = '...';
+      } else {
+        btn.textContent = '🎙️ Start Voice Command';
+        btn.classList.remove('active');
+      }
+    };
+
+    await app.initSpeech();
+
+    btn.addEventListener('click', () => {
+      if (app.speech && app.speech.isListening) {
+        app.stop();
+      } else {
+        app.start();
+      }
+    });
+  }
+
+  window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

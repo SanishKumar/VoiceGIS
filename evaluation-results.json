@@ -1,0 +1,380 @@
+{
+  "timestamp": "2026-06-18T02:50:42.465Z",
+  "total": 538,
+  "passed": 504,
+  "failedCount": 34,
+  "overallAccuracy": 93.68029739776952,
+  "categoryStats": {
+    "Zoom Commands": {
+      "total": 22,
+      "passed": 15
+    },
+    "Typo Resilience": {
+      "total": 21,
+      "passed": 12
+    },
+    "Navigation (go_to)": {
+      "total": 387,
+      "passed": 385
+    },
+    "Layer Control": {
+      "total": 37,
+      "passed": 27
+    },
+    "Marker Commands": {
+      "total": 9,
+      "passed": 8
+    },
+    "Reset View": {
+      "total": 6,
+      "passed": 6
+    },
+    "Switch Map": {
+      "total": 8,
+      "passed": 6
+    },
+    "Conversational": {
+      "total": 7,
+      "passed": 4
+    },
+    "Edge Cases": {
+      "total": 41,
+      "passed": 41
+    }
+  },
+  "failed": [
+    {
+      "text": "make it bigger",
+      "expectedIntent": "zoom_in",
+      "actualIntent": "unknown",
+      "expectedPayload": {},
+      "actualPayload": {},
+      "category": "Zoom Commands"
+    },
+    {
+      "text": "closer",
+      "expectedIntent": "zoom_in",
+      "actualIntent": "unknown",
+      "expectedPayload": {},
+      "actualPayload": {},
+      "category": "Zoom Commands"
+    },
+    {
+      "text": "increase zoom",
+      "expectedIntent": "zoom_in",
+      "actualIntent": "unknown",
+      "expectedPayload": {},
+      "actualPayload": {},
+      "category": "Zoom Commands"
+    },
+    {
+      "text": "zoom closer",
+      "expectedIntent": "zoom_in",
+      "actualIntent": "unknown",
+      "expectedPayload": {},
+      "actualPayload": {},
+      "category": "Zoom Commands"
+    },
+    {
+      "text": "make it smaller",
+      "expectedIntent": "zoom_out",
+      "actualIntent": "unknown",
+      "expectedPayload": {},
+      "actualPayload": {},
+      "category": "Zoom Commands"
+    },
+    {
+      "text": "decrease zoom",
+      "expectedIntent": "zoom_out",
+      "actualIntent": "unknown",
+      "expectedPayload": {},
+      "actualPayload": {},
+      "category": "Zoom Commands"
+    },
+    {
+      "text": "zoom further away",
+      "expectedIntent": "zoom_out",
+      "actualIntent": "unknown",
+      "expectedPayload": {},
+      "actualPayload": {},
+      "category": "Zoom Commands"
+    },
+    {
+      "text": "zuum in",
+      "expectedIntent": "zoom_in",
+      "actualIntent": "unknown",
+      "expectedPayload": {},
+      "actualPayload": {},
+      "category": "Typo Resilience"
+    },
+    {
+      "text": "show me tehran",
+      "expectedIntent": "go_to",
+      "actualIntent": "show_layer",
+      "expectedPayload": {
+        "place": "tehran"
+      },
+      "actualPayload": {
+        "layerId": "terrain",
+        "alias": "terrain"
+      },
+      "category": "Navigation (go_to)"
+    },
+    {
+      "text": "open tehran",
+      "expectedIntent": "go_to",
+      "actualIntent": "show_layer",
+      "expectedPayload": {
+        "place": "tehran"
+      },
+      "actualPayload": {
+        "layerId": "terrain",
+        "alias": "terrain"
+      },
+      "category": "Navigation (go_to)"
+    },
+    {
+      "text": "pari",
+      "expectedIntent": "go_to",
+      "actualIntent": "unknown",
+      "expectedPayload": {
+        "place": "paris"
+      },
+      "actualPayload": {},
+      "category": "Typo Resilience"
+    },
+    {
+      "text": "new yorck",
+      "expectedIntent": "go_to",
+      "actualIntent": "unknown",
+      "expectedPayload": {
+        "place": "new york"
+      },
+      "actualPayload": {},
+      "category": "Typo Resilience"
+    },
+    {
+      "text": "nw york",
+      "expectedIntent": "go_to",
+      "actualIntent": "unknown",
+      "expectedPayload": {
+        "place": "new york"
+      },
+      "actualPayload": {},
+      "category": "Typo Resilience"
+    },
+    {
+      "text": "amstrdam",
+      "expectedIntent": "go_to",
+      "actualIntent": "unknown",
+      "expectedPayload": {
+        "place": "amsterdam"
+      },
+      "actualPayload": {},
+      "category": "Typo Resilience"
+    },
+    {
+      "text": "amsterdan",
+      "expectedIntent": "go_to",
+      "actualIntent": "unknown",
+      "expectedPayload": {
+        "place": "amsterdam"
+      },
+      "actualPayload": {},
+      "category": "Typo Resilience"
+    },
+    {
+      "text": "road view",
+      "expectedIntent": "show_layer",
+      "actualIntent": "unknown",
+      "expectedPayload": {
+        "layerId": "osm"
+      },
+      "actualPayload": {},
+      "category": "Layer Control"
+    },
+    {
+      "text": "satellite view",
+      "expectedIntent": "show_layer",
+      "actualIntent": "unknown",
+      "expectedPayload": {
+        "layerId": "nasa"
+      },
+      "actualPayload": {},
+      "category": "Layer Control"
+    },
+    {
+      "text": "nasa layer",
+      "expectedIntent": "show_layer",
+      "actualIntent": "unknown",
+      "expectedPayload": {
+        "layerId": "nasa"
+      },
+      "actualPayload": {},
+      "category": "Layer Control"
+    },
+    {
+      "text": "satellite please",
+      "expectedIntent": "show_layer",
+      "actualIntent": "unknown",
+      "expectedPayload": {
+        "layerId": "nasa"
+      },
+      "actualPayload": {},
+      "category": "Layer Control"
+    },
+    {
+      "text": "india map",
+      "expectedIntent": "show_layer",
+      "actualIntent": "unknown",
+      "expectedPayload": {
+        "layerId": "bhuvan"
+      },
+      "actualPayload": {},
+      "category": "Layer Control"
+    },
+    {
+      "text": "nrsc layer",
+      "expectedIntent": "show_layer",
+      "actualIntent": "unknown",
+      "expectedPayload": {
+        "layerId": "bhuvan"
+      },
+      "actualPayload": {},
+      "category": "Layer Control"
+    },
+    {
+      "text": "land cover",
+      "expectedIntent": "show_layer",
+      "actualIntent": "unknown",
+      "expectedPayload": {
+        "layerId": "copernicus"
+      },
+      "actualPayload": {},
+      "category": "Layer Control"
+    },
+    {
+      "text": "topo map",
+      "expectedIntent": "show_layer",
+      "actualIntent": "unknown",
+      "expectedPayload": {
+        "layerId": "terrain"
+      },
+      "actualPayload": {},
+      "category": "Layer Control"
+    },
+    {
+      "text": "topographic",
+      "expectedIntent": "show_layer",
+      "actualIntent": "unknown",
+      "expectedPayload": {
+        "layerId": "terrain"
+      },
+      "actualPayload": {},
+      "category": "Layer Control"
+    },
+    {
+      "text": "disable open street map",
+      "expectedIntent": "hide_layer",
+      "actualIntent": "show_layer",
+      "expectedPayload": {
+        "layerId": "osm"
+      },
+      "actualPayload": {
+        "layerId": "osm",
+        "alias": "street"
+      },
+      "category": "Layer Control"
+    },
+    {
+      "text": "satelite view",
+      "expectedIntent": "show_layer",
+      "actualIntent": "unknown",
+      "expectedPayload": {
+        "layerId": "nasa"
+      },
+      "actualPayload": {},
+      "category": "Typo Resilience"
+    },
+    {
+      "text": "satelitte",
+      "expectedIntent": "show_layer",
+      "actualIntent": "unknown",
+      "expectedPayload": {
+        "layerId": "nasa"
+      },
+      "actualPayload": {},
+      "category": "Typo Resilience"
+    },
+    {
+      "text": "topografic",
+      "expectedIntent": "show_layer",
+      "actualIntent": "unknown",
+      "expectedPayload": {
+        "layerId": "terrain"
+      },
+      "actualPayload": {},
+      "category": "Typo Resilience"
+    },
+    {
+      "text": "put a pin here",
+      "expectedIntent": "add_marker",
+      "actualIntent": "add_marker",
+      "expectedPayload": {
+        "useCurrentLocation": false
+      },
+      "actualPayload": {
+        "useCurrentLocation": true
+      },
+      "category": "Marker Commands"
+    },
+    {
+      "text": "change to open layers",
+      "expectedIntent": "switch_map",
+      "actualIntent": "unknown",
+      "expectedPayload": {
+        "engine": "openlayers"
+      },
+      "actualPayload": {},
+      "category": "Switch Map"
+    },
+    {
+      "text": "change to leaflet",
+      "expectedIntent": "switch_map",
+      "actualIntent": "unknown",
+      "expectedPayload": {
+        "engine": "leaflet"
+      },
+      "actualPayload": {},
+      "category": "Switch Map"
+    },
+    {
+      "text": "i would like to get a closer look",
+      "expectedIntent": "zoom_in",
+      "actualIntent": "unknown",
+      "expectedPayload": {},
+      "actualPayload": {},
+      "category": "Conversational"
+    },
+    {
+      "text": "i want to see the satellite map now",
+      "expectedIntent": "show_layer",
+      "actualIntent": "unknown",
+      "expectedPayload": {
+        "layerId": "nasa"
+      },
+      "actualPayload": {},
+      "category": "Conversational"
+    },
+    {
+      "text": "can you switch to satellite view please",
+      "expectedIntent": "show_layer",
+      "actualIntent": "unknown",
+      "expectedPayload": {
+        "layerId": "nasa"
+      },
+      "actualPayload": {},
+      "category": "Conversational"
+    }
+  ]
+}

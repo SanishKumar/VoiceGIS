@@ -22,6 +22,8 @@ export const INTENT = {
   ADD_MARKER: 'add_marker',
   SWITCH_MAP: 'switch_map',
   RESET_VIEW: 'reset_view',
+  UNDO: 'undo',
+  REDO: 'redo',
   UNKNOWN: 'unknown',
 };
 
@@ -125,6 +127,11 @@ const SIMPLE_INTENT_PHRASES = {
   'use openlayers': { intent: INTENT.SWITCH_MAP, payload: { engine: 'openlayers' } },
   'switch to leaflet': { intent: INTENT.SWITCH_MAP, payload: { engine: 'leaflet' } },
   'use leaflet': { intent: INTENT.SWITCH_MAP, payload: { engine: 'leaflet' } },
+  'undo': { intent: INTENT.UNDO },
+  'go back': { intent: INTENT.UNDO },
+  'undo last': { intent: INTENT.UNDO },
+  'redo': { intent: INTENT.REDO },
+  'redo last': { intent: INTENT.REDO },
 };
 
 // Global default geocoder instance for the parser to use
@@ -174,6 +181,14 @@ export async function parseCommand(text, options = {}) {
 
   if (/\bswitch\s+to\s+leaflet\b/.test(t) || /\buse\s+leaflet\b/.test(t) || /\bleaflet\s+map\b/.test(t)) {
     return { intent: INTENT.SWITCH_MAP, payload: { engine: 'leaflet' }, raw, confidence: 0.95 };
+  }
+
+  if (/\b(undo|go\s+back|revert)\b/.test(t)) {
+    return { intent: INTENT.UNDO, payload: {}, raw, confidence: 0.95 };
+  }
+
+  if (/\bredo\b/.test(t)) {
+    return { intent: INTENT.REDO, payload: {}, raw, confidence: 0.95 };
   }
 
   // 2. Fuzzy match simple phrases

@@ -23,6 +23,8 @@ async function runEvaluation() {
   let total = benchmarks.length;
   let passed = 0;
   let failed = [];
+  
+  const categoryStats = {};
 
   const startTime = Date.now();
 
@@ -31,7 +33,6 @@ async function runEvaluation() {
     
     let isPass = result.intent === test.intent;
     
-    // Also verify payload if specified in benchmark
     if (isPass && test.payload) {
       for (const [key, val] of Object.entries(test.payload)) {
         if (result.payload[key] !== val) {
@@ -41,8 +42,16 @@ async function runEvaluation() {
       }
     }
 
+    const category = test.category || 'Uncategorized';
+    if (!categoryStats[category]) {
+      categoryStats[category] = { total: 0, passed: 0 };
+    }
+    
+    categoryStats[category].total++;
+
     if (isPass) {
       passed++;
+      categoryStats[category].passed++;
       process.stdout.write('✅ ');
     } else {
       process.stdout.write('❌ ');
@@ -52,27 +61,45 @@ async function runEvaluation() {
         actualIntent: result.intent,
         expectedPayload: test.payload,
         actualPayload: result.payload,
+        category: category
       });
     }
   }
 
   const duration = Date.now() - startTime;
+  const overallAccuracy = (passed / total) * 100;
   
   console.log(`\n\n📊 Evaluation Complete in ${duration}ms`);
-  console.log(`Accuracy: ${((passed / total) * 100).toFixed(1)}% (${passed}/${total} passed)`);
+  console.log(`Accuracy: ${overallAccuracy.toFixed(1)}% (${passed}/${total} passed)`);
   
-  if (failed.length > 0) {
-    console.log('\n❌ Failed Cases:');
-    failed.forEach(f => {
-      console.log(`  - Text: "${f.text}"`);
-      console.log(`    Expected Intent: ${f.expectedIntent} | Actual: ${f.actualIntent}`);
-      if (f.expectedPayload || f.actualPayload) {
-        console.log(`    Expected Payload: ${JSON.stringify(f.expectedPayload)} | Actual: ${JSON.stringify(f.actualPayload)}`);
-      }
-    });
-    process.exit(1); // Exit with error code if any tests fail
+  // Build Markdown Table
+  let mdTable = `| Category | Cases | Accuracy | Notes |\n|---|---|---|---|\n`;
+  for (const [cat, stats] of Object.entries(categoryStats)) {
+    const catAcc = ((stats.passed / stats.total) * 100).toFixed(1);
+    mdTable += `| ${cat} | ${stats.total} | ${catAcc}% | |\n`;
+  }
+  mdTable += `| **Overall** | **${total}** | **${overallAccuracy.toFixed(1)}%** | |\n`;
+
+  console.log('\n' + mdTable);
+
+  const report = {
+    timestamp: new Date().toISOString(),
+    total,
+    passed,
+    failedCount: failed.length,
+    overallAccuracy,
+    categoryStats,
+    failed
+  };
+
+  await fs.writeFile('evaluation-results.json', JSON.stringify(report, null, 2));
+  console.log('📝 Wrote detailed results to evaluation-results.json');
+
+  if (overallAccuracy < 90) {
+    console.log(`\n❌ Overall accuracy ${overallAccuracy.toFixed(1)}% is below the 90% threshold!`);
+    process.exit(1);
   } else {
-    console.log('\n🎉 All benchmarks passed!');
+    console.log('\n🎉 Accuracy meets the 90% threshold.');
     process.exit(0);
   }
 }

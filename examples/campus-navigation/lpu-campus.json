@@ -1,0 +1,77 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Central Library",
+        "description": "The main library of LPU.",
+        "category": "academic"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [75.7051, 31.2560]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Baldev Raj Mittal Unipolis",
+        "description": "Open air theatre and event ground.",
+        "category": "event"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [75.7031, 31.2540]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Shanti Devi Mittal Auditorium",
+        "description": "Main indoor auditorium.",
+        "category": "event"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [75.7061, 31.2555]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Block 34",
+        "description": "School of Computer Science.",
+        "category": "academic"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [75.7045, 31.2580]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Uni Mall",
+        "description": "Shopping and food court for students.",
+        "category": "commercial"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [75.7075, 31.2530]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Main Gate",
+        "description": "LPU Main Entrance.",
+        "category": "entrance"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [75.7020, 31.2510]
+      }
+    }
+  ]
+}
