@@ -7,6 +7,13 @@
 
 import { jest } from '@jest/globals';
 
+// Force the dynamic npm import to fail in tests, so WhisperEngine falls back 
+// to our injected window.transformers mock. This prevents tests from making 
+// real network requests to Hugging Face.
+jest.unstable_mockModule('@huggingface/transformers', () => {
+  throw new Error('Simulate missing npm module');
+});
+
 // ---------------------------------------------------------------------------
 // Mock helpers
 // ---------------------------------------------------------------------------
