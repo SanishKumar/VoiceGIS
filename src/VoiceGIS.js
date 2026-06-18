@@ -8,7 +8,7 @@
  */
 
 import { SpeechEngine, ENGINE_TYPE } from './engines/index.js';
-import { parseCommand, defaultGeocoder, INTENT } from './parser/index.js';
+import { parseCommand, parseCommandChain, defaultGeocoder, INTENT } from './parser/index.js';
 import { MapController, MAP_ENGINE } from './map/index.js';
 import { CommandHistory } from './history/index.js';
 
@@ -47,6 +47,9 @@ export class VoiceGIS {
     
     /** @type {CommandHistory|null} */
     this.history = this.options.enableHistory ? new CommandHistory() : null;
+    
+    /** @type {Array<function>} Middleware pipeline */
+    this.middlewares = [];
     
     // Auto-initialize map if a container was provided
     if (this.options.mapContainerId) {
@@ -176,42 +179,78 @@ export class VoiceGIS {
   }
 
   /**
+   * Register a middleware to intercept and modify voice commands.
+   * Signature: (context: { result, rawText, map }, next: function) => Promise<void>
+   */
+  use(middlewareFn) {
+    this.middlewares.push(middlewareFn);
+  }
+
+  /**
    * Internal handler for speech results.
    */
   async _handleSpeechResult(text, isFinal) {
     if (!isFinal || !text) return;
 
-    const lowerText = text.toLowerCase().trim();
-
-    // 1. Check custom commands first
-    for (const cmd of this.customCommands) {
-      const match = lowerText.match(cmd.pattern);
-      if (match) {
-        const result = { intent: cmd.intent, payload: { match }, raw: text, confidence: 1 };
-        
-        if (this.options.onCommandParsed) {
-          this.options.onCommandParsed(result, text);
-        }
-
-        if (this.options.autoExecute && this.map) {
-          cmd.action(this.map, match);
-        }
-        return;
-      }
-    }
-
-    // 2. Fall back to built-in parser
-    const result = await parseCommand(text, {
+    // Use command chaining
+    const results = await parseCommandChain(text, {
       enableGeocoding: this.options.enableGeocoding,
       geocoder: defaultGeocoder
     });
 
-    if (this.options.onCommandParsed) {
-      this.options.onCommandParsed(result, text);
-    }
+    for (const result of results) {
+      // Allow custom commands to override built-in parsing
+      let finalResult = result;
+      let matchedCustom = false;
+      const lowerText = result.raw.toLowerCase().trim();
 
-    if (this.options.autoExecute && this.map) {
-      this._executeBuiltIn(result);
+      for (const cmd of this.customCommands) {
+        const match = lowerText.match(cmd.pattern);
+        if (match) {
+          finalResult = { intent: cmd.intent, payload: { match }, raw: result.raw, confidence: 1, action: cmd.action };
+          matchedCustom = true;
+          break;
+        }
+      }
+
+      if (this.options.onCommandParsed) {
+        this.options.onCommandParsed(finalResult, text);
+      }
+
+      // Context for middleware
+      const context = { result: finalResult, rawText: text, map: this.map };
+      
+      // If we have middlewares, we wait for them to call next() to the end.
+      // We push a final virtual middleware that executes the command.
+      const execMiddleware = async (ctx, next) => {
+        if (this.options.autoExecute && this.map) {
+          if (matchedCustom) {
+            ctx.result.action(this.map, ctx.result.payload.match);
+          } else {
+            this._executeBuiltIn(ctx.result);
+          }
+        }
+        await next();
+      };
+
+      // Create a temporary pipeline for this specific command execution
+      const pipeline = [...this.middlewares, execMiddleware];
+      
+      let index = -1;
+      const runner = async (i) => {
+        if (i <= index) throw new Error('next() called multiple times');
+        index = i;
+        const fn = pipeline[i];
+        if (!fn) return;
+        await fn(context, () => runner(i + 1));
+      };
+      
+      await runner(0);
+
+      // Optional delay between chained commands could be added here
+      if (results.length > 1) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
     }
   }
 

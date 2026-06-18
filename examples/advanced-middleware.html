@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Advanced Middleware & Chaining - VoiceGIS Example</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body { margin: 0; font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; overflow: hidden; background: #1e1e24; color: #fff; }
+    #map { flex: 1; height: 100%; }
+    #sidebar { width: 350px; background: #2b2b36; padding: 20px; display: flex; flex-direction: column; gap: 15px; border-right: 1px solid #444; }
+    h2 { margin: 0; font-size: 20px; color: #a5d8ff; }
+    button { background: #339af0; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+    button.active { background: #fa5252; }
+    .log-container { flex: 1; background: #151519; border-radius: 8px; padding: 10px; overflow-y: auto; font-family: monospace; font-size: 13px; }
+    .log-entry { padding: 5px; border-bottom: 1px solid #333; }
+    .log-entry.command { color: #a9e34b; }
+    .log-entry.middleware { color: #ffd43b; }
+    .log-entry.blocked { color: #ff8787; text-decoration: line-through; }
+  </style>
+</head>
+<body>
+
+<div id="sidebar">
+  <h2>VoiceGIS Advanced</h2>
+  <p style="font-size: 14px; color: #adb5bd; margin-bottom: 0;">
+    Try saying chained commands:<br>
+    <i>"Zoom to Paris and show the satellite layer"</i>
+  </p>
+  
+  <div style="background: #343a40; padding: 10px; border-radius: 6px; font-size: 14px;">
+    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+      <input type="checkbox" id="readonly-toggle">
+      Enable Read-Only Mode (Blocks markers via middleware)
+    </label>
+  </div>
+
+  <button id="btn-voice">🎙️ Start Listening</button>
+  
+  <div class="log-container" id="logger">
+    <div style="color: #666; font-style: italic;">Event log...</div>
+  </div>
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script type="module">
+  import { VoiceGIS } from '../../src/VoiceGIS.js';
+
+  const START_CENTER = [40.7128, -74.0060]; // NY
+
+  function logEvent(text, type = '') {
+    const logger = document.getElementById('logger');
+    const div = document.createElement('div');
+    div.className = `log-entry ${type}`;
+    div.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+    logger.prepend(div);
+  }
+
+  async function init() {
+    const app = new VoiceGIS({
+      mapContainerId: 'map',
+      speechEngine: 'auto',
+      autoExecute: true
+    });
+
+    app.map.goTo(START_CENTER, 13);
+    app.map.showLayer('osm');
+
+    // ---------------------------------------------------------
+    // MIDDLEWARE 1: Logging Analytics
+    // ---------------------------------------------------------
+    app.use(async (ctx, next) => {
+      logEvent(`Middleware: Intercepted intent '${ctx.result.intent}'`, 'middleware');
+      
+      const start = performance.now();
+      await next(); // Pass control to next middleware (or execution)
+      const duration = (performance.now() - start).toFixed(2);
+      
+      logEvent(`Middleware: Execution took ${duration}ms`, 'middleware');
+    });
+
+    // ---------------------------------------------------------
+    // MIDDLEWARE 2: Read-Only Mode Enforcer
+    // ---------------------------------------------------------
+    app.use(async (ctx, next) => {
+      const isReadOnly = document.getElementById('readonly-toggle').checked;
+      
+      if (isReadOnly && ctx.result.intent === 'add_marker') {
+        logEvent(`Blocked: Markers are disabled in read-only mode!`, 'blocked');
+        return; // We do NOT call next(), so execution is swallowed
+      }
+      
+      await next();
+    });
+
+    app.options.onCommandParsed = (result, raw) => {
+      logEvent(`Command: "${raw}" -> ${result.intent}`, 'command');
+    };
+
+    const btn = document.getElementById('btn-voice');
+    app.options.onStateChange = (state) => {
+      if (state === 'listening') {
+        btn.textContent = '🛑 Stop Listening';
+        btn.classList.add('active');
+      } else {
+        btn.textContent = '🎙️ Start Listening';
+        btn.classList.remove('active');
+      }
+    };
+
+    await app.initSpeech();
+
+    btn.addEventListener('click', () => {
+      app.speech.isListening ? app.stop() : app.start();
+    });
+  }
+
+  window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

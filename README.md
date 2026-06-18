@@ -108,6 +108,7 @@ The core of the library is the `VoiceGIS` orchestrator class.
 | `onCommandParsed`| `function` | `undefined` | Callback `(result, rawText)` triggered when a voice command is understood. |
 | `onStateChange` | `function` | `undefined` | Callback `(state)` where state is `'listening'`, `'idle'`, or `'error'`. |
 | `onEngineSwitched`| `function` | `undefined` | Callback `(engineType)` triggered when the hybrid router switches engines. |
+| `enableHistory` | `boolean`  | `true`      | Enables undo/redo history tracking for map state changes. |
 
 ### Methods
 
@@ -115,6 +116,7 @@ The core of the library is the `VoiceGIS` orchestrator class.
 - `start()`: Begins listening for voice commands.
 - `stop()`: Stops listening.
 - `registerCommand(intentName, pattern, action)`: Register custom application logic (see Recipes below).
+- `use(middlewareFn)`: Register an Express-style middleware to intercept commands (see below).
 
 ## 🍳 Recipes: Custom Commands
 
@@ -146,6 +148,52 @@ Check out our domain-specific example apps with live demos and code:
 - [🏫 Campus Navigation (LPU)](examples/campus-navigation/README.md): Voice routing, fuzzy building search, and category filtering.
 - [🗼 Tourist City Map (Paris)](examples/tourist-city-map/README.md): Custom markers, bounding box navigation, and POI filtering.
 - [📋 Offline Field Survey](examples/field-survey/README.md): Completely offline data collection with annotated markers and geolocation.
+- [⚙️ Advanced Middleware & Chaining](examples/advanced-middleware.html): Voice command chaining ("Zoom to Paris and show satellite") and an Express-style `app.use()` pipeline for analytics and permissions.
+
+## 🔗 Middleware & Command Chaining
+
+### Middleware Pipeline
+
+Intercept, log, or block voice commands before they execute using `app.use()`:
+
+```javascript
+// Analytics logger
+app.use(async (ctx, next) => {
+  analytics.track('voice_command', { intent: ctx.result.intent });
+  await next();
+});
+
+// Block markers in read-only mode
+app.use(async (ctx, next) => {
+  if (readOnlyMode && ctx.result.intent === 'add_marker') return; // swallow
+  await next();
+});
+```
+
+### Command Chaining
+
+VoiceGIS can split compound voice commands automatically:
+
+```
+"Zoom to Paris and show the satellite layer"
+→ [go_to: Paris] + [show_layer: satellite]
+
+"Go to London then add a marker"
+→ [go_to: London] + [add_marker]
+```
+
+### Undo / Redo
+
+VoiceGIS tracks map state (center, zoom) before each command. Say **"undo"** or **"go back"** to revert:
+
+```javascript
+const app = new VoiceGIS({ mapContainerId: 'map', enableHistory: true });
+// Voice: "undo", "go back", "redo"
+// Programmatic:
+app.history.undo(app.map);
+app.history.redo(app.map);
+```
+
 ### Further Integration Recipes
 
 We have detailed guides for using VoiceGIS in modern tech stacks:

@@ -25,7 +25,7 @@ export {
 export { AudioCapture, WaveformRenderer } from './audio/index.js';
 
 // Command parsing
-export { parseCommand, resolveCity, resolveLayer, INTENT, CITY_COORDS, LAYER_ALIASES } from './parser/index.js';
+export { parseCommand, parseCommandChain, splitCommandString, resolveCity, resolveLayer, INTENT, CITY_COORDS, LAYER_ALIASES } from './parser/index.js';
 
 // Map controller
 export { MapController, MAP_ENGINE, LAYER_DEFS, DEFAULT_CENTER } from './map/index.js';

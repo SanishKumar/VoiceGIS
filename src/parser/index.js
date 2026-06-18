@@ -17,6 +17,8 @@ export {
   LAYER_ALIASES,
 } from './CommandParser.js';
 
+export { parseCommandChain, splitCommandString } from './CommandChain.js';
+
 export {
   fuzzyMatch,
   levenshtein,
