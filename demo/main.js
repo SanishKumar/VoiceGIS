@@ -192,7 +192,7 @@ function setLayerCheckbox(layerId, checked) {
   if (cb) cb.checked = checked;
 }
 
-function handleLayerError({ layerId, label, error }) {
+function handleLayerError({ layerId, label }) {
   setLayerCheckbox(layerId, false);
   showNotif(`⚠ Layer "${label || layerId}" failed to load.`, 'error');
 }
@@ -399,10 +399,11 @@ function executeAction(result) {
         showNotif(`📍 Marker added`, 'success');
       }
       break;
-    case INTENT.SWITCH_MAP:
+    case INTENT.SWITCH_MAP: {
       const newEngine = result.payload.engine === 'openlayers' ? MAP_ENGINE.OPENLAYERS : MAP_ENGINE.LEAFLET;
       if (newEngine !== currentMapEngine) switchMapEngine(newEngine);
       break;
+    }
     case INTENT.RESET_VIEW:
       mapController.resetView();
       showNotif('🌍 View reset', 'info');

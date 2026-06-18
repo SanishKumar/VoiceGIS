@@ -16,7 +16,7 @@
 
 import { LeafletAdapter } from './LeafletAdapter.js';
 import { OpenLayersAdapter } from './OpenLayersAdapter.js';
-import { LAYER_DEFS, DEFAULT_CENTER, DEFAULT_ZOOM } from './layers.js';
+import { LAYER_DEFS } from './layers.js';
 
 export const MAP_ENGINE = {
   LEAFLET: 'leaflet',

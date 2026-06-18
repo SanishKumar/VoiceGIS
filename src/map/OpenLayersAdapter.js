@@ -124,6 +124,7 @@ export class OpenLayersAdapter {
    * @param {[number, number]} latLng
    * @param {string} [popupText] - Not used in OL (kept for interface parity)
    */
+  // eslint-disable-next-line no-unused-vars
   addMarker(latLng, popupText = '') {
     const ol = window.ol;
     const feature = new ol.Feature({

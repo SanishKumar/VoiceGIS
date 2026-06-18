@@ -78,7 +78,7 @@ export class Geocoder {
     if (this.persistCache && typeof localStorage !== 'undefined') {
       try {
         localStorage.removeItem('voicegis_geocache');
-      } catch (_) {}
+      } catch (_) { /* ignore */ }
     }
   }
 

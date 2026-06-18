@@ -343,7 +343,7 @@ export class WhisperEngine {
       try {
         const adapter = await navigator.gpu.requestAdapter();
         if (adapter) return 'webgpu';
-      } catch (_) {}
+      } catch (_) { /* ignore */ }
     }
 
     // Fall back to WASM (always available)

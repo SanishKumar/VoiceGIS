@@ -159,7 +159,7 @@ export class WebSpeechEngine {
     if (this._recognition) {
       try {
         this._recognition.stop();
-      } catch (_) {}
+      } catch (_) { /* ignore */ }
     }
   }
 }

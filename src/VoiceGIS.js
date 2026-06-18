@@ -8,7 +8,7 @@
  */
 
 import { SpeechEngine, ENGINE_TYPE } from './engines/index.js';
-import { parseCommand, parseCommandChain, defaultGeocoder, INTENT } from './parser/index.js';
+import { parseCommandChain, defaultGeocoder, INTENT } from './parser/index.js';
 import { MapController, MAP_ENGINE } from './map/index.js';
 import { CommandHistory } from './history/index.js';
 
