@@ -163,14 +163,33 @@ app.use(async (ctx, next) => {
   await next();
 });
 
-// Block markers in read-only mode
-app.use(async (ctx, next) => {
-  if (readOnlyMode && ctx.result.intent === 'add_marker') return; // swallow
-  await next();
+// Middleware: block destructive commands in read-only mode
+app.use((context, next) => {
+  if (readOnlyMode && context.result.intent === 'add_marker') {
+    console.warn('Read-only mode: markers disabled');
+    return; // swallow the command
+  }
+  return next();
 });
 ```
 
-### Command Chaining
+#### Built-in Plugins: Voice Feedback (TTS)
+VoiceGIS includes a built-in middleware to make the map talk back to you! Just import and register the `voiceFeedback` plugin, and it will use the browser's native Text-to-Speech to confirm actions (e.g., "Navigating to Paris").
+
+```javascript
+import { VoiceGIS, voiceFeedback } from 'voicegis';
+
+const app = new VoiceGIS({ mapContainerId: 'map' });
+
+// Add the TTS plugin
+app.use(voiceFeedback({ 
+  lang: 'en-US', 
+  rate: 1.1, // slightly faster
+  volume: 0.8
+}));
+```
+
+## Command Chaining
 
 VoiceGIS can split compound voice commands automatically:
 

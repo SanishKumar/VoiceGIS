@@ -37,3 +37,4 @@ export { EvaluationTracker } from './evaluation/index.js';
 
 // History & undo
 export { CommandHistory } from './history/index.js';
+export * from './plugins/VoiceFeedback.js';
