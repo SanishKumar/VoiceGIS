@@ -61,6 +61,7 @@ body {
 #app {
   width: 100vw;
   height: 100vh;
+  height: 100dvh; /* Fixes mobile URL bar cutoff */
   display: flex;
   flex-direction: column;
   position: relative;
@@ -726,10 +727,11 @@ canvas#waveform-canvas {
 
 @media (max-width: 768px) {
   .glass-header {
-    padding: 0 12px;
-    top: 10px;
-    left: 10px;
-    right: 10px;
+    padding: 15px 12px;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to bottom, rgba(15, 17, 21, 0.95) 20%, transparent);
   }
 
   .logo {
@@ -739,13 +741,13 @@ canvas#waveform-canvas {
     display: none; 
   }
   
+  .header-controls {
+    gap: 8px;
+  }
+  
   .status-pill {
     padding: 4px 8px;
     font-size: 0.7rem;
-  }
-  
-  .status-pill span {
-    display: inline; /* Restore text visibility */
   }
   
   .command-palette {
@@ -792,6 +794,16 @@ canvas#waveform-canvas {
   }
 
   .command-palette {
-    width: 95%;
+    width: 92%;
+    padding: 0.6rem;
+    bottom: 105px;
+  }
+  
+  #transcript {
+    font-size: 0.95rem;
+  }
+
+  .status-pill {
+    display: none; /* Hide completely on mobile as the dots alone are confusing */
   }
 }
