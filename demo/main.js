@@ -9,11 +9,15 @@
  *   AudioCapture / WaveformRenderer → Visualizes audio
  */
 
+import { inject } from '@vercel/analytics';
 import { SpeechEngine, ENGINE_TYPE, WHISPER_STATE } from '../src/engines/index.js';
 import { parseCommand, INTENT } from '../src/parser/index.js';
 import { MapController, MAP_ENGINE } from '../src/map/index.js';
 import { EvaluationTracker } from '../src/evaluation/index.js';
 import { AudioCapture, WaveformRenderer } from '../src/audio/index.js';
+
+// Initialize Vercel Web Analytics
+inject();
 
 // ---------------------------------------------------------------------------
 // State

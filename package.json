@@ -86,6 +86,7 @@
     "@tensorflow-models/speech-commands": "^0.5.4",
     "@tensorflow/tfjs": "^4.17.0",
     "@tensorflow/tfjs-backend-webgl": "^4.17.0",
+    "@vercel/analytics": "^2.0.1",
     "leaflet": "^1.9.0",
     "ol": "^9.0.0"
   },
