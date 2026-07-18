@@ -5,7 +5,7 @@
   <p>
     <a href="https://www.npmjs.com/package/voicegis"><img src="https://img.shields.io/npm/v/voicegis" alt="NPM Version" /></a>
     <img src="https://img.shields.io/npm/unpacked-size/voicegis" alt="Package Size" />
-    <a href="https://SanishKumar.github.io/VoiceGIS/"><img src="https://img.shields.io/badge/live-VoiceGIS_Atlas-ff6b35" alt="Live VoiceGIS Atlas demo" /></a>
+    <a href="https://voicemap-three.vercel.app/"><img src="https://img.shields.io/badge/live-VoiceGIS_Atlas-ff6b35" alt="Live VoiceGIS Atlas demo" /></a>
     <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" />
   </p>
 </div>
@@ -16,7 +16,7 @@
 
 ## VoiceGIS Atlas
 
-**[Launch the live operations console →](https://SanishKumar.github.io/VoiceGIS/)**
+**[Launch the live operations console →](https://voicemap-three.vercel.app/)**
 
 ![VoiceGIS Atlas social preview](demo/public/og.png)
 
