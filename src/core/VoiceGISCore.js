@@ -1,5 +1,5 @@
 import { SpatialCatalog } from './SpatialCatalog.js';
-import { CommandPolicy } from './CommandPolicy.js';
+import { resolveCommandPolicy } from './CommandPolicy.js';
 import { SpatialCommandCompiler } from './SpatialCommandCompiler.js';
 import { CommandExecutor } from './CommandExecutor.js';
 
@@ -12,9 +12,7 @@ export class VoiceGISCore {
     this.catalog = options.catalog instanceof SpatialCatalog
       ? options.catalog
       : new SpatialCatalog(options.catalog);
-    this.policy = options.policy instanceof CommandPolicy
-      ? options.policy
-      : new CommandPolicy(options.policy);
+    this.policy = resolveCommandPolicy(options.policy);
     this.adapter = options.adapter || null;
     this.compiler = new SpatialCommandCompiler({
       ...options,

@@ -15,7 +15,7 @@ const SCENARIOS = {
     code: 'A1',
     title: 'Monsoon Sentinel',
     mapTitle: 'RISHIKESH RESPONSE CORRIDOR',
-    summary: 'Flood-response coordination across the Rishikesh corridor with live priority zones and field assets.',
+    summary: 'Simulated flood-response coordination across the Rishikesh corridor with priority zones and field assets.',
     state: 'CRITICAL',
     stateClass: 'critical',
     center: [30.0869, 78.2676],
@@ -121,7 +121,7 @@ const SCENARIOS = {
     code: 'C4',
     title: 'Urban Pulse',
     mapTitle: 'MUMBAI MOBILITY NETWORK',
-    summary: 'Live multimodal flow analysis across rail, emergency corridors, and high-density demand clusters.',
+    summary: 'Simulated multimodal flow analysis across rail, emergency corridors, and high-density demand clusters.',
     state: 'MONITOR',
     stateClass: 'monitor',
     center: [19.076, 72.8777],
@@ -209,6 +209,7 @@ const dom = {
   unknownCount: document.getElementById('unknown-count'),
   accuracyRing: document.getElementById('accuracy-ring'),
   telemetryDrawer: document.getElementById('telemetry-drawer'),
+  telemetryClose: document.getElementById('telemetry-close'),
   drawerBackdrop: document.getElementById('drawer-backdrop'),
   toastRegion: document.getElementById('toast-region'),
   waveformCanvas: document.getElementById('waveform-canvas'),
@@ -227,6 +228,9 @@ let commandRecords = [];
 let tourRunning = false;
 let waveformFrame = null;
 let waveformListening = false;
+let activeMobileTrigger = null;
+let activeDrawerTrigger = null;
+const mobileLayout = window.matchMedia('(max-width: 980px)');
 
 const engineDescriptions = {
   auto: 'Selects the lowest-latency available engine and falls back without losing the command session.',
@@ -251,7 +255,14 @@ function initMap(engine = MAP_ENGINE.LEAFLET) {
   mapController = new MapController({
     engine,
     containerId: isOpenLayers ? 'ol-map' : 'leaflet-map',
-    onLayerError: ({ label }) => showToast(`${label} could not be reached. Dark operations basemap restored.`, 'warning'),
+    onLayerError: ({ layerId, label }) => {
+      if (layerId !== 'dark' && activeBasemap === layerId) {
+        setBasemap('dark');
+        showToast(`${label} could not be reached. Switched to the dark operations basemap.`, 'warning');
+        return;
+      }
+      showToast(`${label} could not be reached. Check the connection or choose another basemap.`, 'warning');
+    },
   });
   mapController.init();
   currentMapEngine = engine;
@@ -492,7 +503,7 @@ function activateScenario(key, options = {}) {
   dom.missionState.className = `status-tag ${scenario.stateClass}`;
   dom.missionCode.textContent = `MISSION ${scenario.code}`;
   dom.mapTitle.textContent = scenario.mapTitle;
-  dom.mapSubtitle.textContent = `${scenario.center[0].toFixed(4)}° N / ${Math.abs(scenario.center[1]).toFixed(4)}° ${scenario.center[1] < 0 ? 'W' : 'E'} / LIVE OPERATIONAL PICTURE`;
+  dom.mapSubtitle.textContent = `${scenario.center[0].toFixed(4)}° N / ${Math.abs(scenario.center[1]).toFixed(4)}° ${scenario.center[1] < 0 ? 'W' : 'E'} / SIMULATED OPERATIONAL DATA`;
   dom.assetCount.textContent = String(scenario.assetTotal).padStart(2, '0');
   dom.zoneCount.textContent = String(scenario.zones.length).padStart(2, '0');
   dom.coverageValue.textContent = `${scenario.coverage}%`;
@@ -745,6 +756,32 @@ async function runCommand(text, source = 'typed') {
     );
     setPipelineStage('execute', 'active', 'Dispatching to map adapter', currentMapEngine);
 
+    const hasUnknown = compiled.results.some((result) => result.intent === INTENT.UNKNOWN);
+    if (hasUnknown) {
+      for (const result of compiled.results) {
+        tracker.recordCommand({
+          raw: result.raw,
+          intent: result.intent,
+          payload: result.payload,
+          confidence: result.confidence,
+          latency: compiled.parserTime / compiled.results.length,
+        });
+      }
+      setPipelineStage(
+        'execute',
+        'error',
+        'Nothing executed. Clarify every command before the map is changed.',
+        'BLOCKED'
+      );
+      dom.compilerLatency.textContent = `${compiled.compileTime.toFixed(1)} MS`;
+      dom.commandState.textContent = 'NEEDS CLARIFICATION';
+      renderCompiledIntent(command, source, compiled, compiled.compileTime, 'blocked');
+      addCommandEvidence(command, compiled.results, compiled.compileTime);
+      updateSessionMetrics();
+      showToast('Command not run because at least one action was not understood. Try a suggested command.', 'warning');
+      return;
+    }
+
     const executionStarted = performance.now();
     const messages = [];
     for (const result of compiled.results) {
@@ -770,8 +807,7 @@ async function runCommand(text, source = 'typed') {
     addCommandEvidence(command, compiled.results, totalTime);
     updateSessionMetrics();
 
-    const hasUnknown = compiled.results.some((result) => result.intent === INTENT.UNKNOWN);
-    showToast(messages.join(' · '), hasUnknown ? 'warning' : 'success');
+    showToast(messages.join(' · '), 'success');
   } catch (error) {
     setPipelineStage('execute', 'error', error.message, 'FAILED');
     dom.commandState.textContent = 'EXECUTION FAILED';
@@ -793,9 +829,9 @@ function setPipelineStage(stage, state, detail, timing) {
   element.querySelector('em').textContent = timing;
 }
 
-function renderCompiledIntent(command, source, compiled, totalTime) {
+function renderCompiledIntent(command, source, compiled, totalTime, status = 'committed') {
   const payload = {
-    status: compiled.results.some((result) => result.intent === INTENT.UNKNOWN) ? 'partial' : 'committed',
+    status,
     source,
     transcript: command,
     adapter: currentMapEngine,
@@ -1038,20 +1074,59 @@ async function runProductTour() {
 }
 
 function setDrawer(open) {
+  const wasOpen = dom.telemetryDrawer.classList.contains('open');
+  if (open && !wasOpen) activeDrawerTrigger = document.activeElement;
   dom.telemetryDrawer.classList.toggle('open', open);
   dom.telemetryDrawer.setAttribute('aria-hidden', String(!open));
   dom.telemetryDrawer.toggleAttribute('inert', !open);
   dom.drawerBackdrop.classList.toggle('open', open);
+  if (open) {
+    dom.telemetryClose.focus();
+  } else if (wasOpen && activeDrawerTrigger?.isConnected) {
+    activeDrawerTrigger.focus();
+    activeDrawerTrigger = null;
+  }
 }
 
-function closeMobilePanels() {
+function syncMobilePanelAccessibility() {
+  document.querySelectorAll('.side-panel').forEach((panel) => {
+    const hidden = mobileLayout.matches && !panel.classList.contains('open');
+    panel.setAttribute('aria-hidden', String(hidden));
+    panel.toggleAttribute('inert', hidden);
+  });
+  document.querySelectorAll('[data-open-panel]').forEach((button) => {
+    const panel = document.getElementById(button.dataset.openPanel);
+    button.setAttribute('aria-expanded', String(Boolean(panel?.classList.contains('open'))));
+  });
+}
+
+function closeMobilePanels({ restoreFocus = true } = {}) {
   document.querySelectorAll('.side-panel.open').forEach((panel) => panel.classList.remove('open'));
+  syncMobilePanelAccessibility();
   if (!dom.telemetryDrawer.classList.contains('open')) dom.drawerBackdrop.classList.remove('open');
+  if (restoreFocus && activeMobileTrigger?.isConnected && mobileLayout.matches) {
+    activeMobileTrigger.focus();
+  }
+  activeMobileTrigger = null;
+}
+
+function openMobilePanel(panelId, trigger) {
+  closeMobilePanels({ restoreFocus: false });
+  const panel = document.getElementById(panelId);
+  if (!panel) return;
+  panel.classList.add('open');
+  activeMobileTrigger = trigger;
+  syncMobilePanelAccessibility();
+  dom.drawerBackdrop.classList.add('open');
+  panel.querySelector('[data-close-panel]')?.focus();
 }
 
 function bindEvents() {
   document.querySelectorAll('[data-scenario]').forEach((button) => {
-    button.addEventListener('click', () => activateScenario(button.dataset.scenario));
+    button.addEventListener('click', () => {
+      activateScenario(button.dataset.scenario);
+      if (mobileLayout.matches) closeMobilePanels();
+    });
   });
 
   document.querySelectorAll('input[name="basemap"]').forEach((radio) => {
@@ -1112,7 +1187,7 @@ function bindEvents() {
 
   document.getElementById('tour-button').addEventListener('click', runProductTour);
   document.getElementById('telemetry-button').addEventListener('click', () => setDrawer(true));
-  document.getElementById('telemetry-close').addEventListener('click', () => setDrawer(false));
+  dom.telemetryClose.addEventListener('click', () => setDrawer(false));
   dom.drawerBackdrop.addEventListener('click', () => {
     setDrawer(false);
     closeMobilePanels();
@@ -1120,9 +1195,7 @@ function bindEvents() {
 
   document.querySelectorAll('[data-open-panel]').forEach((button) => {
     button.addEventListener('click', () => {
-      closeMobilePanels();
-      document.getElementById(button.dataset.openPanel).classList.add('open');
-      dom.drawerBackdrop.classList.add('open');
+      openMobilePanel(button.dataset.openPanel, button);
     });
   });
 
@@ -1148,6 +1221,11 @@ function bindEvents() {
 
   window.addEventListener('online', updateOnlineStatus);
   window.addEventListener('offline', updateOnlineStatus);
+  mobileLayout.addEventListener('change', () => {
+    closeMobilePanels({ restoreFocus: false });
+    syncMobilePanelAccessibility();
+  });
+  syncMobilePanelAccessibility();
 }
 
 function registerServiceWorker() {
@@ -1171,6 +1249,7 @@ function bootstrap() {
   window.setTimeout(() => {
     dom.app.classList.add('ready');
     dom.bootScreen.classList.add('complete');
+    dom.bootScreen.hidden = true;
     showToast('VoiceGIS Atlas online. Type a command or run the guided tour.', 'success');
   }, 650);
 }

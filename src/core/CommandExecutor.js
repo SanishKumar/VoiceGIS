@@ -1,4 +1,4 @@
-import { CommandPolicy } from './CommandPolicy.js';
+import { resolveCommandPolicy } from './CommandPolicy.js';
 
 function now(clock) {
   return new Date(clock()).toISOString();
@@ -26,7 +26,7 @@ export class CommandExecutor {
    */
   constructor({ adapter, policy, clock } = {}) {
     this.adapter = adapter;
-    this.policy = policy instanceof CommandPolicy ? policy : new CommandPolicy(policy);
+    this.policy = resolveCommandPolicy(policy);
     this.clock = clock || Date.now;
   }
 
@@ -139,7 +139,10 @@ export class CommandExecutor {
 
     let failed = 0;
     for (const operation of plan.operations) {
-      if (options.signal?.aborted) return finish(failed ? 'partial' : 'cancelled');
+      if (options.signal?.aborted) {
+        const succeeded = receipt.results.some((result) => result.status === 'succeeded');
+        return finish(succeeded || failed ? 'partial' : 'cancelled');
+      }
       emit('operation.started', { operation });
       try {
         const value = await this.adapter.execute(operation, {

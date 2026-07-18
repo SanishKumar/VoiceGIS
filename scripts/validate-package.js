@@ -15,6 +15,10 @@ if (runtimeDependencies.length > 0) {
   fail(`expected zero runtime dependencies; found ${runtimeDependencies.join(', ')}`);
 }
 
+if ((packageJson.files || []).includes('dist')) {
+  fail('the package allowlist includes all of dist/ and would ship hosted-site artifacts');
+}
+
 for (const [subpath, definition] of Object.entries(packageJson.exports || {})) {
   const targets = typeof definition === 'string'
     ? { default: definition }

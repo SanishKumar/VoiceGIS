@@ -86,6 +86,7 @@ select:focus-visible {
 
 .app-shell.ready {
   opacity: 1;
+  transition: none;
 }
 
 .boot-screen {
@@ -107,6 +108,8 @@ select:focus-visible {
 .boot-screen.complete {
   opacity: 0;
   visibility: hidden;
+  pointer-events: none;
+  transition: none;
 }
 
 .boot-mark,

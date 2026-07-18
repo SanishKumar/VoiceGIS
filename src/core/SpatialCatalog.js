@@ -28,6 +28,23 @@ function normalizeFields(fields) {
   return Object.entries(fields).map(([id, field]) => normalizeField(field, id));
 }
 
+function assertUnambiguousNames(items, kind, scope = '') {
+  const owners = new Map();
+  for (const item of items) {
+    const names = new Set([item.id, item.label, ...item.aliases].map(normalizeText).filter(Boolean));
+    for (const name of names) {
+      const existing = owners.get(name);
+      if (existing && existing !== item) {
+        const location = scope ? ` ${scope}` : '';
+        throw new TypeError(
+          `Ambiguous ${kind} name "${name}"${location}: used by "${existing.id}" and "${item.id}".`
+        );
+      }
+      owners.set(name, item);
+    }
+  }
+}
+
 function normalizeLayer(layer, fallbackId) {
   const input = typeof layer === 'string' ? { id: layer } : { ...layer };
   const id = String(input.id || fallbackId || '').trim();
@@ -41,6 +58,7 @@ function normalizeLayer(layer, fallbackId) {
     }
     fieldIds.add(field.id);
   }
+  assertUnambiguousNames(fields, 'field', `in layer "${id}"`);
 
   return Object.freeze({
     ...input,
@@ -74,6 +92,7 @@ export class SpatialCatalog {
       if (layerIds.has(layer.id)) throw new TypeError(`Duplicate layer id "${layer.id}".`);
       layerIds.add(layer.id);
     }
+    assertUnambiguousNames(layers, 'layer');
 
     this.version = String(source.version || '1');
     this.layers = Object.freeze(layers);

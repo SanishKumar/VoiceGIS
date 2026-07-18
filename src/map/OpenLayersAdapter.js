@@ -195,6 +195,21 @@ export class OpenLayersAdapter {
 
   _createLayer(def) {
     const ol = window.ol;
+    const reportTileError = (event) => {
+      if (this._failedLayers.has(def.id)) return;
+      this._failedLayers.add(def.id);
+      console.warn(
+        `[OpenLayersAdapter] Layer "${def.id}" failed to load tiles from ${def.url}.`,
+        'Possible causes: endpoint unreachable, DNS failure, CORS, or incorrect layer configuration.',
+        event,
+      );
+      this.onLayerError?.({
+        layerId: def.id,
+        label: def.label,
+        error: new Error('Map tile load failed'),
+      });
+    };
+
     if (def.type === 'wms') {
       const source = new ol.source.TileWMS({
         url: def.url,
@@ -208,25 +223,8 @@ export class OpenLayersAdapter {
         serverType: 'mapserver',
       });
 
-      // Tile-error handler for WMS failures.
-      // Only report once per layer per session.
-      source.on('tileloaderror', (e) => {
-        if (!this._failedLayers.has(def.id)) {
-          this._failedLayers.add(def.id);
-          console.warn(
-            `[OpenLayersAdapter] WMS layer "${def.id}" failed to load tiles from ${def.url}.`,
-            'Possible causes: endpoint unreachable, DNS failure, CORS, or incorrect layer name.',
-            e,
-          );
-          if (this.onLayerError) {
-            this.onLayerError({
-              layerId: def.id,
-              label: def.label,
-              error: new Error('WMS tile load failed'),
-            });
-          }
-        }
-      });
+      // Only report once per layer per session to avoid notification spam.
+      source.on('tileloaderror', reportTileError);
 
       return new ol.layer.Tile({
         source,
@@ -236,12 +234,14 @@ export class OpenLayersAdapter {
 
     // XYZ tile — handle {s} subdomain placeholder
     const tileUrl = def.url.replace('{s}', 'a');
+    const source = new ol.source.XYZ({
+      url: tileUrl,
+      maxZoom: def.maxZoom || 18,
+      attributions: def.attribution,
+    });
+    source.on('tileloaderror', reportTileError);
     return new ol.layer.Tile({
-      source: new ol.source.XYZ({
-        url: tileUrl,
-        maxZoom: def.maxZoom || 18,
-        attributions: def.attribution,
-      }),
+      source,
       properties: { id: def.id },
     });
   }

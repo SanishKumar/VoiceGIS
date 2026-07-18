@@ -196,10 +196,18 @@ export const CORE_SCHEMA_VERSION = '1.0';
  */
 
 /**
+ * Application-defined policy contract. This makes custom operation types
+ * possible without weakening the built-in policy's safe defaults.
+ *
+ * @typedef {object} PolicyEvaluator
+ * @property {(operation:string|{type:string}) => PolicyDecision} evaluate
+ */
+
+/**
  * @typedef {object} ResolverContext
  * @property {string} text
  * @property {import('./SpatialCatalog.js').SpatialCatalog} catalog
- * @property {import('./CommandPolicy.js').CommandPolicy} policy
+ * @property {PolicyEvaluator} policy
  * @property {import('./SpatialCommandCompiler.js').SpatialCommandCompiler} compiler
  */
 
@@ -221,7 +229,7 @@ export const CORE_SCHEMA_VERSION = '1.0';
 /**
  * @typedef {object} CompilerOptions
  * @property {import('./SpatialCatalog.js').SpatialCatalog|CatalogDefinition|Array<CatalogLayer|string>} [catalog]
- * @property {import('./CommandPolicy.js').CommandPolicy|CommandPolicyOptions} [policy]
+ * @property {PolicyEvaluator|CommandPolicyOptions} [policy]
  * @property {boolean} [enableGeocoding]
  * @property {{geocode:(place:string) => Promise<*>}} [geocoder]
  * @property {CommandResolver[]} [resolvers]
@@ -231,7 +239,7 @@ export const CORE_SCHEMA_VERSION = '1.0';
 /**
  * @typedef {object} ExecutorOptions
  * @property {VoiceGISAdapter} [adapter]
- * @property {import('./CommandPolicy.js').CommandPolicy|CommandPolicyOptions} [policy]
+ * @property {PolicyEvaluator|CommandPolicyOptions} [policy]
  * @property {() => number} [clock]
  */
 

@@ -1,6 +1,6 @@
 import { parseCommand, INTENT } from '../parser/CommandParser.js';
 import { SpatialCatalog } from './SpatialCatalog.js';
-import { CommandPolicy } from './CommandPolicy.js';
+import { resolveCommandPolicy } from './CommandPolicy.js';
 import { OPERATION, PLAN_STATUS } from './constants.js';
 import { CORE_SCHEMA_VERSION } from './types.js';
 
@@ -186,9 +186,7 @@ export class SpatialCommandCompiler {
     this.catalog = options.catalog instanceof SpatialCatalog
       ? options.catalog
       : new SpatialCatalog(options.catalog);
-    this.policy = options.policy instanceof CommandPolicy
-      ? options.policy
-      : new CommandPolicy(options.policy);
+    this.policy = resolveCommandPolicy(options.policy);
     this.enableGeocoding = options.enableGeocoding === true;
     this.geocoder = options.geocoder;
     this.resolvers = [...(options.resolvers || [])];

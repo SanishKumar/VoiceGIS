@@ -73,6 +73,25 @@ describe('SpatialCatalog', () => {
     expect(catalog.resolveLayer('roads').layer.fields[0].id).toBe('speed');
     expect(() => new SpatialCatalog({ layers: ['roads', 'roads'] })).toThrow('Duplicate');
   });
+
+  test('rejects aliases that make layer or field resolution ambiguous', () => {
+    expect(() => new SpatialCatalog({
+      layers: [
+        { id: 'roads', aliases: ['network'] },
+        { id: 'rail', aliases: ['network'] },
+      ],
+    })).toThrow('Ambiguous layer name "network"');
+
+    expect(() => new SpatialCatalog({
+      layers: [{
+        id: 'roads',
+        fields: [
+          { id: 'speed', aliases: ['limit'] },
+          { id: 'capacity', aliases: ['limit'] },
+        ],
+      }],
+    })).toThrow('Ambiguous field name "limit"');
+  });
 });
 
 describe('SpatialCommandCompiler', () => {
@@ -215,6 +234,33 @@ describe('SpatialCommandCompiler', () => {
 
     expect(plan.status).toBe(PLAN_STATUS.READY);
     expect(plan.operations[0].args.bounds).toEqual([1, 2, 3, 4]);
+  });
+
+  test('preserves a custom policy contract for domain-specific operations', async () => {
+    const policy = {
+      evaluate: jest.fn(() => ({
+        allowed: true,
+        permission: 'admin',
+        risk: 'high',
+        requiresConfirmation: true,
+        reason: null,
+      })),
+    };
+    const plan = await createCompiler({
+      policy,
+      resolvers: [() => ({ type: 'domain.dispatch-crews', args: { team: 'alpha' } })],
+    }).compile('dispatch alpha');
+
+    expect(policy.evaluate).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'domain.dispatch-crews',
+    }));
+    expect(plan.status).toBe(PLAN_STATUS.NEEDS_CONFIRMATION);
+    expect(plan.operations[0]).toMatchObject({
+      type: 'domain.dispatch-crews',
+      permission: 'admin',
+      risk: 'high',
+      requiresConfirmation: true,
+    });
   });
 
   test('only splits "and" when another operation begins', () => {

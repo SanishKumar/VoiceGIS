@@ -163,6 +163,57 @@ describe('CommandExecutor', () => {
     expect(receipt.status).toBe('cancelled');
     expect(handler).not.toHaveBeenCalled();
   });
+
+  test('reports partial execution when a signal aborts after a side effect', async () => {
+    const controller = new AbortController();
+    const handler = jest.fn(async () => {
+      controller.abort();
+      return 'first operation committed';
+    });
+    const adapter = createFunctionAdapter({ [OPERATION.VIEW_ZOOM]: handler });
+    const executor = new CommandExecutor({ adapter, clock: fixedClock });
+    const plan = makePlan(
+      { type: OPERATION.VIEW_ZOOM },
+      {
+        operations: [
+          { ...makePlan({ type: OPERATION.VIEW_ZOOM }).operations[0], id: 'op_first' },
+          { ...makePlan({ type: OPERATION.VIEW_ZOOM }).operations[0], id: 'op_second' },
+        ],
+      }
+    );
+
+    const receipt = await executor.execute(plan, { signal: controller.signal });
+
+    expect(receipt.status).toBe('partial');
+    expect(receipt.results).toHaveLength(1);
+    expect(receipt.results[0].status).toBe('succeeded');
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  test('rechecks domain operations with an application-defined policy', async () => {
+    const operationType = 'domain.dispatch-crews';
+    const policy = {
+      evaluate: jest.fn(() => ({
+        allowed: true,
+        permission: 'admin',
+        risk: 'high',
+        requiresConfirmation: false,
+        reason: null,
+      })),
+    };
+    const handler = jest.fn(async () => 'dispatched');
+    const executor = new CommandExecutor({
+      adapter: createFunctionAdapter({ [operationType]: handler }),
+      policy,
+      clock: fixedClock,
+    });
+
+    const receipt = await executor.execute(makePlan({ type: operationType }));
+
+    expect(receipt.status).toBe('succeeded');
+    expect(policy.evaluate).toHaveBeenCalledWith(expect.objectContaining({ type: operationType }));
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('VoiceGISCore', () => {

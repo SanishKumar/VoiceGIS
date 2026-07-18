@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#070a0c">
-  <meta name="description" content="VoiceGIS Atlas is a voice-native spatial intelligence and incident command console.">
+  <meta name="description" content="VoiceGIS Atlas is an interactive SDK simulation for policy-aware natural-language GIS commands.">
   <meta property="og:type" content="website">
   <meta property="og:title" content="VoiceGIS Atlas — Spatial Intelligence by Voice">
-  <meta property="og:description" content="A voice-native incident command console with hybrid speech AI, inspectable intent compilation, and dual GIS adapters.">
+  <meta property="og:description" content="An interactive VoiceGIS SDK simulation with hybrid speech AI, inspectable intent compilation, and dual GIS adapters.">
   <meta property="og:image" content="https://voicemap-three.vercel.app/og.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="VoiceGIS Atlas — Spatial Intelligence by Voice">
@@ -20,8 +20,8 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v9.2.4/ol.css">
-  <script type="module" crossorigin src="./assets/index-DUePp6oK.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-R3uxoe6_.css">
+  <script type="module" crossorigin src="./assets/index-CWh2tpwM.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-C68IY9aT.css">
 </head>
 <body>
   <div id="boot-screen" class="boot-screen" aria-hidden="true">
@@ -63,6 +63,7 @@
       <nav class="top-actions" aria-label="Project links">
         <button id="tour-button" class="text-button" type="button">RUN TOUR</button>
         <button id="telemetry-button" class="text-button" type="button">TELEMETRY</button>
+        <a class="text-button" href="https://www.npmjs.com/package/voicegis" target="_blank" rel="noreferrer">NPM PACKAGE</a>
         <a class="primary-link" href="https://github.com/SanishKumar/VoiceGIS" target="_blank" rel="noreferrer">VIEW SOURCE <span>↗</span></a>
       </nav>
     </header>
@@ -82,7 +83,7 @@
             </div>
             <span id="mission-state" class="status-tag critical">CRITICAL</span>
           </div>
-          <p id="mission-summary" class="mission-summary">Flood-response coordination across the Rishikesh corridor with live priority zones and field assets.</p>
+          <p id="mission-summary" class="mission-summary">Simulated flood-response coordination across the Rishikesh corridor with priority zones and field assets.</p>
 
           <div id="scenario-list" class="scenario-list" role="tablist" aria-label="Mission scenarios">
             <button class="scenario-card active" data-scenario="monsoon" type="button" role="tab" aria-selected="true">
@@ -162,7 +163,7 @@
           <div class="map-context">
             <span id="mission-code">MISSION A1</span>
             <h2 id="map-title">RISHIKESH RESPONSE CORRIDOR</h2>
-            <small id="map-subtitle">30.0869° N / 78.2676° E / LIVE OPERATIONAL PICTURE</small>
+            <small id="map-subtitle">30.0869° N / 78.2676° E / SIMULATED OPERATIONAL DATA</small>
           </div>
           <div class="map-kpis">
             <div><small>FIELD ASSETS</small><strong id="asset-count">14</strong></div>
@@ -249,9 +250,9 @@
     </main>
 
     <div class="mobile-dock">
-      <button data-open-panel="mission-panel" type="button">OPERATIONS</button>
+      <button data-open-panel="mission-panel" type="button" aria-controls="mission-panel" aria-expanded="false">OPERATIONS</button>
       <button id="mobile-command" type="button">COMMAND</button>
-      <button data-open-panel="intel-panel" type="button">INTENT</button>
+      <button data-open-panel="intel-panel" type="button" aria-controls="intel-panel" aria-expanded="false">INTENT</button>
     </div>
 
     <div id="telemetry-drawer" class="telemetry-drawer" aria-hidden="true" inert>

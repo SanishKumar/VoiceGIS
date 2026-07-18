@@ -73,3 +73,24 @@ export class CommandPolicy {
     });
   }
 }
+
+/**
+ * @param {*} value
+ * @returns {value is import('./types.js').PolicyEvaluator}
+ */
+function isPolicyEvaluator(value) {
+  return Boolean(value && typeof value.evaluate === 'function');
+}
+
+/**
+ * Preserve application-defined policy evaluators while normalizing plain
+ * configuration objects to the built-in policy implementation.
+ *
+ * @param {import('./types.js').PolicyEvaluator|import('./types.js').CommandPolicyOptions|undefined} policy
+ * @returns {import('./types.js').PolicyEvaluator}
+ */
+export function resolveCommandPolicy(policy) {
+  return isPolicyEvaluator(policy)
+    ? policy
+    : new CommandPolicy(policy);
+}

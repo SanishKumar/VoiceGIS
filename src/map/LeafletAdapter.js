@@ -173,6 +173,22 @@ export class LeafletAdapter {
 
   _createLayer(def) {
     const L = window.L;
+    const reportTileError = (event) => {
+      if (this._failedLayers.has(def.id)) return;
+      this._failedLayers.add(def.id);
+      const error = event.error || event;
+      console.warn(
+        `[LeafletAdapter] Layer "${def.id}" failed to load tiles from ${def.url}.`,
+        'Possible causes: endpoint unreachable, DNS failure, CORS, or incorrect layer configuration.',
+        error,
+      );
+      this.onLayerError?.({
+        layerId: def.id,
+        label: def.label,
+        error: error instanceof Error ? error : new Error('Map tile load failed'),
+      });
+    };
+
     if (def.type === 'wms') {
       const layer = L.tileLayer.wms(def.url, {
         layers: def.layers,
@@ -183,32 +199,17 @@ export class LeafletAdapter {
         crs: def.crs ? window.L.CRS[LEAFLET_CRS_MAP[def.crs] || def.crs] : undefined,
       });
 
-      // Tile-error handler for WMS failures (network, DNS, CORS).
-      // Only report once per layer per session to avoid spam.
-      layer.on('tileerror', (e) => {
-        if (!this._failedLayers.has(def.id)) {
-          this._failedLayers.add(def.id);
-          console.warn(
-            `[LeafletAdapter] WMS layer "${def.id}" failed to load tiles from ${def.url}.`,
-            'Possible causes: endpoint unreachable, DNS failure, CORS, or incorrect layer name.',
-            e.error || e,
-          );
-          if (this.onLayerError) {
-            this.onLayerError({
-              layerId: def.id,
-              label: def.label,
-              error: e.error || new Error('WMS tile load failed'),
-            });
-          }
-        }
-      });
+      // Only report once per layer per session to avoid notification spam.
+      layer.on('tileerror', reportTileError);
 
       return layer;
     }
 
-    return L.tileLayer(def.url, {
+    const layer = L.tileLayer(def.url, {
       attribution: def.attribution,
       maxZoom: def.maxZoom || 18,
     });
+    layer.on('tileerror', reportTileError);
+    return layer;
   }
 }
