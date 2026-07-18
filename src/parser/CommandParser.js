@@ -161,7 +161,7 @@ export const defaultGeocoder = new Geocoder();
  * @param {string} text - Raw recognized text (case-insensitive).
  * @param {object} [options]
  * @param {boolean} [options.enableGeocoding=true] - Whether to use Nominatim online API
- * @param {Geocoder} [options.geocoder] - Geocoder instance to use
+ * @param {Geocoder|{geocode:(place:string) => Promise<object|null>}} [options.geocoder] - Geocoder-compatible instance to use
  * @returns {Promise<{ intent: string, payload: object, raw: string, confidence: number }>}
  */
 export async function parseCommand(text, options = {}) {
@@ -291,7 +291,7 @@ export async function parseCommand(text, options = {}) {
  * Resolve a go-to target to coordinates, trying local cache first then online geocoder.
  * @param {string} placeName
  * @param {boolean} enableGeocoding
- * @param {Geocoder} geocoder
+ * @param {Geocoder|{geocode:(place:string) => Promise<object|null>}} geocoder
  * @returns {Promise<{place: string, coords: [number, number], fuzzy: boolean, source: string}|null>}
  */
 async function resolveGoTo(placeName, enableGeocoding, geocoder) {

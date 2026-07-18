@@ -1,124 +1,286 @@
-# VoiceGIS API Reference
+# VoiceGIS API reference
 
-VoiceGIS exports its modules under a top-level orchestrator class, as well as individual modules for advanced use cases.
+The recommended API is the headless `voicegis/core` entry point. The original speech and map orchestrator remains available for backward compatibility.
 
----
+## Core factory
 
-## `VoiceGIS` Orchestrator
+### `createVoiceGISCore(options)`
 
-The main entry point for most applications.
+Creates a `VoiceGISCore` instance.
+
+```js
+import { createVoiceGISCore } from 'voicegis/core';
+
+const gis = createVoiceGISCore({
+  catalog,
+  policy,
+  adapter,
+  enableGeocoding: false,
+  geocoder,
+  resolvers,
+  clock,
+});
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `catalog` | `object \| SpatialCatalog` | Empty catalog | Layers, fields, aliases, and optional layer capabilities |
+| `policy` | `object \| CommandPolicy` | View and query only | Permission, allow, deny, and confirmation rules |
+| `adapter` | `object` | `null` | Host application's execution adapter |
+| `enableGeocoding` | `boolean` | `false` | Allows the legacy navigation fallback to use the supplied geocoder |
+| `geocoder` | `object` | Legacy geocoder | Object with an async `geocode(place)` method |
+| `resolvers` | `Function[]` | `[]` | Domain-specific command resolvers, evaluated before built-ins |
+| `clock` | `Function` | `Date.now` | Time source used by plans and receipts |
+
+### `VoiceGISCore.compile(input)`
+
+Returns a promise for a serializable command plan. Compilation does not call the adapter.
+
+### `VoiceGISCore.execute(plan, options)`
+
+Preflights and executes a plan. Returns an execution receipt.
+
+### `VoiceGISCore.run(input, options)`
+
+Compiles and executes, returning `{ plan, receipt }`.
+
+### `VoiceGISCore.addResolver(resolver)`
+
+Registers a custom resolver and returns a function that unregisters it.
+
+## `SpatialCatalog`
+
+```js
+import { SpatialCatalog } from 'voicegis/core';
+
+const catalog = new SpatialCatalog({
+  version: '2026.07',
+  layers: [{
+    id: 'parcels',
+    label: 'Land parcels',
+    aliases: ['plots'],
+    fields: [{
+      id: 'area_ha',
+      label: 'Area',
+      aliases: ['size'],
+      type: 'number',
+      unit: 'hectare',
+    }],
+    capabilities: ['layer.visibility', 'query.filter'],
+  }],
+});
+```
+
+Layer and field definitions may also be object maps keyed by id.
+
+Methods:
+
+| Method | Returns | Description |
+|---|---|---|
+| `resolveLayer(value, options?)` | Match or `null` | Resolves an id, label, alias, or close spelling |
+| `findLayer(text)` | Match or `null` | Finds the longest catalog layer name in free text |
+| `resolveField(layer, value, options?)` | Match or `null` | Resolves a field within one layer |
+| `supports(layer, operationType)` | `boolean` | Checks a declared layer capability; omitted capability lists defer to the adapter |
+| `toJSON()` | `object` | Returns the serializable catalog |
+
+## `CommandPolicy`
+
+```js
+const policy = new CommandPolicy({
+  permissions: ['view', 'query', 'analysis', 'export'],
+  allow: ['view.*', 'layer.*', 'query.*', 'analysis.buffer', 'data.export'],
+  deny: ['feature.add'],
+  confirm: ['analysis.buffer', 'data.export'],
+});
+```
+
+Rules use exact operation names or a trailing wildcard such as `query.*`. `deny` wins over `allow`.
+
+`policy.evaluate(operation)` returns:
+
+```js
+{
+  allowed: true,
+  permission: 'query',
+  risk: 'low',
+  requiresConfirmation: false,
+  reason: null,
+}
+```
+
+The default policy grants `view` and `query`. `CommandPolicy.permissive()` grants every permission; use it intentionally.
+
+## `SpatialCommandCompiler`
+
+`new SpatialCommandCompiler(options)` accepts the same catalog, policy, geocoding, resolver, and clock options as the facade.
+
+`compiler.compile(input)` returns:
+
+| Field | Description |
+|---|---|
+| `version` | Plan contract version |
+| `id` | Unique plan id |
+| `input` | Normalized source text |
+| `status` | `ready`, `needs_input`, `needs_confirmation`, or `blocked` |
+| `operations` | Ordered typed operations |
+| `issues` | Clarification and policy/capability explanations |
+| `requirements` | Unique capabilities, permissions, and confirmation operation ids |
+| `meta` | Catalog version, creation time, and compiler id |
+
+`splitSpatialCommand(text)` exposes the command-chain splitter. It does not split an ordinary `and` inside a filter unless another operation verb follows it.
+
+## Operations
+
+Import stable identifiers through `OPERATION`.
+
+| Constant | Value | Permission |
+|---|---|---|
+| `VIEW_ZOOM` | `view.zoom` | `view` |
+| `VIEW_PAN` | `view.pan` | `view` |
+| `VIEW_SET` | `view.set` | `view` |
+| `VIEW_RESET` | `view.reset` | `view` |
+| `LAYER_VISIBILITY` | `layer.visibility` | `view` |
+| `FEATURE_ADD` | `feature.add` | `edit` |
+| `QUERY_FILTER` | `query.filter` | `query` |
+| `QUERY_CLEAR` | `query.clear` | `query` |
+| `QUERY_SELECT` | `query.select` | `query` |
+| `QUERY_SPATIAL_SELECT` | `query.spatial_select` | `query` |
+| `QUERY_COUNT` | `query.count` | `query` |
+| `SELECTION_CLEAR` | `selection.clear` | `query` |
+| `ANALYSIS_BUFFER` | `analysis.buffer` | `analysis` |
+| `DATA_EXPORT` | `data.export` | `export` |
+| `HISTORY_UNDO` | `history.undo` | `edit` |
+| `HISTORY_REDO` | `history.redo` | `edit` |
+| `ADAPTER_SWITCH` | `adapter.switch` | `admin` |
+
+Operation metadata is exported as `OPERATION_METADATA`. `PLAN_STATUS`, `RISK`, and `PERMISSION` provide the other stable constants.
+
+## Predicate AST
+
+VoiceGIS emits data, not executable query strings.
+
+Comparison:
+
+```js
+{
+  type: 'comparison',
+  field: 'area_ha',
+  operator: 'gte',
+  value: 2,
+  unit: 'hectare',
+}
+```
+
+Group:
+
+```js
+{
+  type: 'group',
+  operator: 'and',
+  conditions: [
+    { type: 'comparison', field: 'status', operator: 'eq', value: 'open' },
+    { type: 'comparison', field: 'severity', operator: 'gte', value: 3 },
+  ],
+}
+```
+
+Supported comparison operators are `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `contains`, `not_contains`, and `starts_with`.
+
+## `createFunctionAdapter`
+
+```js
+const adapter = createFunctionAdapter({
+  [OPERATION.QUERY_FILTER]: async ({ operation, target, args, context }) => {
+    return dataStore.filter(target.layerId, args.predicate, {
+      signal: context.signal,
+    });
+  },
+}, {
+  name: 'city-dashboard',
+});
+```
+
+The handler keys become adapter capabilities. An adapter exposes:
+
+```js
+{
+  name,
+  capabilities,
+  supports(type),
+  execute(operation, context),
+}
+```
+
+Custom adapters can implement this contract directly.
+
+## `CommandExecutor`
+
+```js
+const executor = new CommandExecutor({ adapter, policy });
+const receipt = await executor.execute(plan, {
+  confirm: async (operation, plan) => true,
+  signal: abortController.signal,
+  stopOnError: true,
+  onEvent: (event) => console.log(event),
+});
+```
+
+Execution is preflighted before the first handler runs. Policy denial, missing adapter capability, missing confirmation, or an already-aborted signal produces a receipt without performing the operation.
+
+Receipt statuses are `succeeded`, `partial`, `failed`, `cancelled`, and `needs_confirmation`.
+
+Lifecycle event types:
+
+- `execution.started`
+- `operation.confirmed`
+- `operation.started`
+- `operation.completed`
+- `operation.failed`
+- `execution.completed`
+
+## Custom resolvers
+
+A resolver receives `{ text, catalog, policy, compiler }` and returns `null`, one operation, an operation array, or `{ operations, issues }`.
+
+```js
+gis.addResolver(({ text }) => {
+  const match = text.match(/^open work order (WO-\d+)$/i);
+  if (!match) return null;
+
+  return {
+    type: 'app.work_order.open',
+    target: { kind: 'work_order', id: match[1] },
+    args: {},
+  };
+});
+```
+
+Custom operation types require a policy and adapter that recognize them. The built-in `CommandPolicy` intentionally rejects unknown operation types; applications can resolve to a built-in type or implement their own policy contract.
+
+## Legacy APIs
+
+### `VoiceGIS`
 
 ```js
 import { VoiceGIS } from 'voicegis';
 
-const app = new VoiceGIS(options);
-```
-
-### Constructor options
-
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `mapEngine` | `string` | `'leaflet'` | `'leaflet'` or `'openlayers'` |
-| `mapContainerId` | `string` | `'map'` | ID of the container `<div>` |
-| `speechEngine` | `string` | `'webspeech'` | `'webspeech'`, `'whisper'`, or `'tfjs'` |
-| `autoExecute` | `boolean` | `true` | If true, automatically executes parsed commands on the map |
-| `onStateChange` | `(state: string) => void` | noop | Fired when the speech engine state changes |
-| `onCommandParsed` | `(result, text) => void`| noop | Fired when a command is parsed |
-
-### Methods
-
-| Method | Returns | Description |
-|---|---|---|
-| `initSpeech()` | `Promise<void>` | Initializes the speech engine |
-| `start()` | `void` | Starts listening for speech |
-| `stop()` | `void` | Stops listening |
-| `registerCommand(intent, regex, action)` | `void` | Registers a custom command |
-
----
-
-## `parseCommand(text)`
-
-The core NLP parser for turning transcripts into structured intents.
-
-```js
-import { parseCommand } from 'voicegis/parser';
-
-const result = await parseCommand("fly to paris");
-```
-
-> **Note**: `parseCommand` is **asynchronous** because it may need to hit the Nominatim API for geocoding unknown cities.
-
-### `CommandResult`
-
-| Field | Type | Description |
-|---|---|---|
-| `intent` | `string` | One of the `INTENT` values |
-| `payload` | `object` | Intent-specific data |
-| `raw` | `string` | Original input text |
-| `confidence` | `number` | Parser confidence 0–1 |
-
-### Payload shapes per intent
-
-| Intent | Payload |
-|---|---|
-| `zoom_in` | `{}` |
-| `zoom_out` | `{}` |
-| `go_to` | `{ place: string, coords: [lat, lng] }` |
-| `show_layer` | `{ layerId: string, alias: string }` |
-| `hide_layer` | `{ layerId: string, alias: string }` |
-| `add_marker` | `{ useCurrentLocation: boolean }` |
-| `switch_map` | `{ engine: 'leaflet' \| 'openlayers' }` |
-| `reset_view` | `{}` |
-| `unknown` | `{}` |
-
----
-
-## `Geocoder`
-
-A Nominatim API wrapper with LRU caching and rate limiting.
-
-```js
-import { Geocoder } from 'voicegis/parser';
-
-const geocoder = new Geocoder({
-  baseUrl: 'https://nominatim.openstreetmap.org/search',
-  cacheSize: 50,
-  rateLimitMs: 1100
+const app = new VoiceGIS({
+  mapEngine: 'leaflet',
+  mapContainerId: 'map',
+  speechEngine: 'webspeech',
+  autoExecute: true,
 });
-
-const coords = await geocoder.geocode("Ahmedabad"); // [lat, lng]
 ```
 
----
+Methods include `initSpeech()`, `start()`, `stop()`, `registerCommand()`, and `use()`.
 
-## `WhisperEngine`
+### `parseCommand(text, options?)`
 
-The on-device Transformers.js integration.
+Available from `voicegis/parser`. The legacy parser returns `{ intent, payload, raw, confidence }`. Unlike Core, its legacy default enables Nominatim geocoding; pass `{ enableGeocoding: false }` to disable it.
 
-```js
-import { WhisperEngine } from 'voicegis/engines';
+### Optional modules
 
-const engine = new WhisperEngine({
-  onResult: (text) => console.log(text),
-  onModelProgress: (info) => console.log(`${info.status}: ${info.progress}%`)
-});
-await engine.init();
-engine.start();
-```
-
----
-
-## `MapController`
-
-```js
-import { MapController } from 'voicegis/map';
-
-const mapCtrl = new MapController({
-  engine: 'leaflet',
-  containerId: 'map'
-});
-mapCtrl.init();
-mapCtrl.goTo([48.8566, 2.3522], 12, 'Paris');
-```
-
-See the [source code](https://github.com/sanishkumar/VoiceGIS) for full class definitions.
+- `voicegis/engines`: `WebSpeechEngine`, `WhisperEngine`, `WhisperServerEngine`, `TfjsEngine`, and `createEngine`
+- `voicegis/map`: `MapController`, `LeafletAdapter`, and `OpenLayersAdapter`
+- `voicegis/audio`: `AudioCapture` and `WaveformRenderer`
+- `voicegis/evaluation`: `EvaluationTracker`

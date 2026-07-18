@@ -10,6 +10,24 @@
 // High-level Orchestrator
 export { VoiceGIS } from './VoiceGIS.js';
 
+// Headless, policy-aware GIS command compiler and executor
+export {
+  OPERATION,
+  OPERATION_METADATA,
+  PLAN_STATUS,
+  RISK,
+  PERMISSION,
+  SpatialCatalog,
+  CommandPolicy,
+  SpatialCommandCompiler,
+  splitSpatialCommand,
+  CommandExecutor,
+  createFunctionAdapter,
+  VoiceGISCore,
+  createVoiceGISCore,
+} from './core/index.js';
+export * from './core/types.js';
+
 // Voice recognition engines
 export {
   SpeechEngine,

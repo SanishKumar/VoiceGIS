@@ -5,8 +5,10 @@
     "moduleResolution": "bundler",
     "allowJs": true,
     "checkJs": true,
+    "noEmit": false,
     "declaration": true,
     "emitDeclarationOnly": true,
+    "rootDir": "./src",
     "outDir": "./dist/types",
     "strict": false
   },
