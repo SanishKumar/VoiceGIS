@@ -53,7 +53,7 @@ describe('VoiceGIS Orchestrator', () => {
   test('constructor sets default options', () => {
     const vgis = new VoiceGIS();
     expect(vgis.options.mapEngine).toBe(MAP_ENGINE.LEAFLET);
-    expect(vgis.options.speechEngine).toBe(ENGINE_TYPE.WEB_SPEECH);
+    expect(vgis.options.speechEngine).toBe('auto');
     expect(vgis.options.autoExecute).toBe(true);
   });
 

@@ -22,6 +22,8 @@ export class WaveformRenderer {
 
     this._animFrameId = null;
     this._isRunning = false;
+    this._displayWidth = canvas.clientWidth || canvas.width;
+    this._displayHeight = canvas.clientHeight || canvas.height;
 
     // Style configuration
     this._style = {
@@ -99,7 +101,7 @@ export class WaveformRenderer {
    * Draw a single frame of the idle state (flat line or subtle animation).
    */
   drawIdle() {
-    const { width, height } = this.canvas;
+    const { width, height } = this._getDisplaySize();
     const ctx = this.ctx;
 
     this._clearCanvas();
@@ -147,7 +149,7 @@ export class WaveformRenderer {
     const dataArray = new Float32Array(bufferLength);
     analyser.getFloatTimeDomainData(dataArray);
 
-    const { width, height } = this.canvas;
+    const { width, height } = this._getDisplaySize();
     const ctx = this.ctx;
 
     this._clearCanvas();
@@ -214,7 +216,7 @@ export class WaveformRenderer {
     const dataArray = new Uint8Array(bufferLength);
     analyser.getByteFrequencyData(dataArray);
 
-    const { width, height } = this.canvas;
+    const { width, height } = this._getDisplaySize();
     const ctx = this.ctx;
 
     this._clearCanvas();
@@ -261,7 +263,7 @@ export class WaveformRenderer {
     const dataArray = new Uint8Array(bufferLength);
     analyser.getByteFrequencyData(dataArray);
 
-    const { width, height } = this.canvas;
+    const { width, height } = this._getDisplaySize();
     const ctx = this.ctx;
 
     this._clearCanvas();
@@ -318,7 +320,7 @@ export class WaveformRenderer {
   // ---------------------------------------------------------------------------
 
   _clearCanvas() {
-    const { width, height } = this.canvas;
+    const { width, height } = this._getDisplaySize();
     if (this._style.backgroundColor && this._style.backgroundColor !== 'transparent') {
       this.ctx.fillStyle = this._style.backgroundColor;
       this.ctx.fillRect(0, 0, width, height);
@@ -334,12 +336,21 @@ export class WaveformRenderer {
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
         const dpr = window.devicePixelRatio || 1;
-        this.canvas.width = width * dpr;
-        this.canvas.height = height * dpr;
-        this.ctx.scale(dpr, dpr);
+        this._displayWidth = width;
+        this._displayHeight = height;
+        this.canvas.width = Math.max(1, Math.round(width * dpr));
+        this.canvas.height = Math.max(1, Math.round(height * dpr));
+        this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       }
     });
 
     this._resizeObserver.observe(this.canvas);
+  }
+
+  _getDisplaySize() {
+    return {
+      width: this._displayWidth || this.canvas.width,
+      height: this._displayHeight || this.canvas.height,
+    };
   }
 }

@@ -1,256 +1,279 @@
-<!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<!doctype html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>VoiceGIS — Intelligent Voice Map</title>
-
-  <!-- Favicon -->
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗺️</text></svg>" />
-
-  <!-- PWA Manifest -->
-  <link rel="manifest" href="manifest.json" />
-
-  <!-- Google Fonts: Inter & Outfit -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#070a0c">
+  <meta name="description" content="VoiceGIS Atlas is a voice-native spatial intelligence and incident command console.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="VoiceGIS Atlas — Spatial Intelligence by Voice">
+  <meta property="og:description" content="A voice-native incident command console with hybrid speech AI, inspectable intent compilation, and dual GIS adapters.">
+  <meta property="og:image" content="https://sanishkumar.github.io/VoiceGIS/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="VoiceGIS Atlas — Spatial Intelligence by Voice">
+  <meta name="twitter:description" content="Hybrid speech AI. Inspectable command graphs. Leaflet and OpenLayers. Offline-first.">
+  <meta name="twitter:image" content="https://sanishkumar.github.io/VoiceGIS/og.png">
+  <title>VoiceGIS Atlas — Spatial Intelligence by Voice</title>
+  <link rel="manifest" href="./manifest.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
-
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
-  <!-- OpenLayers -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v9.2.4/ol.css" />
-
-  <!-- App styles -->
-  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v9.2.4/ol.css">
+  <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-
-<div id="app">
-
-  <!-- ── Offline Banner ───────────────────────────────────── -->
-  <div id="offline-banner" class="offline-banner">
-    ⚠️ You are offline. Some online features (geocoding, online maps) may be unavailable.
+  <div id="boot-screen" class="boot-screen" aria-hidden="true">
+    <div class="boot-mark"><span></span><span></span><i></i></div>
+    <p>VOICEGIS / ATLAS</p>
+    <div class="boot-progress"><i></i></div>
+    <small>INITIALIZING SPATIAL RUNTIME</small>
   </div>
 
-  <!-- ── Fullscreen Map Area ────────────────────────────── -->
-  <div id="map-area">
-    <div id="leaflet-map" class="map-container active"></div>
-    <div id="ol-map" class="map-container"></div>
-    <div id="map-overlay" class="glass-panel">
-      <div class="spinner"></div>
-      <span id="overlay-msg">Switching map engine…</span>
-    </div>
+  <div id="offline-banner" class="offline-banner" role="status">
+    Offline field mode active. Cached basemap and local intent parsing remain available.
   </div>
 
-  <!-- ── Top Navigation Bar (Glassmorphism) ─────────────── -->
-  <header class="glass-header">
-    <div class="logo">
-      <div class="logo-icon">🗺️</div>
-      Voice<span>GIS</span>
-    </div>
-    
-    <div class="header-controls">
-      <!-- Status Indicators -->
-      <div class="status-pill" id="engine-status" title="Current Engine">
-        <span class="status-dot online"></span>
-        <span class="status-text">Web Speech</span>
-      </div>
-      
-      <div class="status-pill" id="map-status" title="Current Map">
-        <span class="status-dot map-dot"></span>
-        <span class="status-text">Leaflet</span>
-      </div>
+  <div id="app" class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="https://github.com/SanishKumar/VoiceGIS" target="_blank" rel="noreferrer" aria-label="VoiceGIS GitHub repository">
+        <span class="brand-mark"><span></span><i></i></span>
+        <span class="brand-copy">
+          <strong>VOICEGIS</strong>
+          <small>ATLAS / COMMAND OS</small>
+        </span>
+      </a>
 
-      <button id="settings-toggle" class="icon-btn" title="Settings">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-      </button>
-    </div>
-  </header>
-
-  <!-- ── Map Controls (Floating Right) ──────────────────── -->
-  <div class="floating-controls right-controls">
-    <button class="glass-btn icon-btn" id="btn-zoom-in" title="Zoom In">
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-    </button>
-    <button class="glass-btn icon-btn" id="btn-zoom-out" title="Zoom Out">
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-    </button>
-    <div class="divider"></div>
-    <button class="glass-btn icon-btn" id="btn-reset" title="Reset View">
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-    </button>
-    <button class="glass-btn icon-btn" id="btn-locate" title="My Location">
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
-    </button>
-  </div>
-
-  <!-- ── Command Palette (Bottom Center, Glassmorphism) ─── -->
-  <div class="command-palette glass-panel">
-    
-    <!-- Audio Visualizer Canvas -->
-    <div class="visualizer-container">
-      <canvas id="waveform-canvas" width="400" height="60"></canvas>
-    </div>
-    
-    <!-- Transcript & Status -->
-    <div class="transcript-area">
-      <div id="transcript" class="placeholder">Say a command like "zoom in" or "go to Paris"</div>
-    </div>
-    
-  </div>
-
-  <!-- ── Floating Mic Button ────────────────────────────── -->
-  <button id="voice-btn" class="mic-fab pulse-idle" title="Start Listening">
-    <svg class="mic-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
-    <svg class="loader-icon" style="display:none" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
-  </button>
-
-  <!-- ── Settings Drawer (Slide out from left) ──────────── -->
-  <div id="settings-drawer" class="drawer glass-panel">
-    <div class="drawer-header">
-      <h2>Settings & Data</h2>
-      <button id="drawer-close" class="icon-btn">&times;</button>
-    </div>
-    
-    <div class="drawer-content">
-      
-      <div class="settings-section">
-        <h3>Engines</h3>
-        
-        <div class="form-group">
-          <label>Voice Recognition</label>
-          <div class="custom-select">
-            <select id="engine-select">
-              <option value="auto" selected>Auto (Smart Hybrid)</option>
-              <option value="webspeech">Online Cloud (Web Speech API)</option>
-              <option value="whisper">Offline Advanced (Whisper AI)</option>
-              <option value="tfjs">Offline Command Mode (TF.js)</option>
-              <option value="server">Private Server (API)</option>
-            </select>
-          </div>
+      <div class="system-strip" aria-label="System status">
+        <div class="system-item">
+          <span id="network-dot" class="signal-dot live"></span>
+          <span><small>NETWORK</small><strong id="network-label">ONLINE</strong></span>
         </div>
-        
-        <!-- Whisper progress bar (hidden unless loading whisper) -->
-        <div id="whisper-progress-container" class="progress-container" style="display:none">
-          <div class="progress-label">
-            <span id="whisper-status-text">Loading Model...</span>
-            <span id="whisper-status-pct">0%</span>
-          </div>
-          <div class="progress-track">
-            <div id="whisper-progress-bar" class="progress-bar"></div>
-          </div>
+        <div class="system-item">
+          <span class="signal-dot live"></span>
+          <span><small>PARSER</small><strong>93.7% VERIFIED</strong></span>
         </div>
-
-        <div class="form-group mt-3">
-          <label>Map Library</label>
-          <div class="custom-select">
-            <select id="map-select">
-              <option value="leaflet">Leaflet</option>
-              <option value="openlayers">OpenLayers</option>
-            </select>
-          </div>
+        <div class="system-item hide-compact">
+          <span id="engine-dot" class="signal-dot ready"></span>
+          <span><small>VOICE ROUTER</small><strong id="engine-label">STANDBY</strong></span>
         </div>
       </div>
-      
-      <div class="settings-section">
-        <h3>Map Layers</h3>
-        <div class="layer-list" id="layer-toggles">
-          <label class="toggle-row">
-            <span class="toggle-label">🗺️ OpenStreetMap</span>
-            <div class="toggle-switch">
-              <input type="checkbox" checked data-layer="osm">
-              <div class="toggle-slider"></div>
+
+      <nav class="top-actions" aria-label="Project links">
+        <button id="tour-button" class="text-button" type="button">RUN TOUR</button>
+        <button id="telemetry-button" class="text-button" type="button">TELEMETRY</button>
+        <a class="primary-link" href="https://github.com/SanishKumar/VoiceGIS" target="_blank" rel="noreferrer">VIEW SOURCE <span>↗</span></a>
+      </nav>
+    </header>
+
+    <main class="workspace">
+      <aside id="mission-panel" class="side-panel mission-panel">
+        <div class="panel-heading">
+          <span class="eyebrow">01 / OPERATIONS</span>
+          <button class="mobile-close" data-close-panel="mission-panel" type="button" aria-label="Close operations panel">×</button>
+        </div>
+
+        <section class="mission-section">
+          <div class="section-title">
+            <div>
+              <small>ACTIVE MISSION</small>
+              <h1 id="mission-title">Monsoon Sentinel</h1>
             </div>
-          </label>
-          
-          <label class="toggle-row">
-            <span class="toggle-label">🛰️ NASA GIBS Satellite</span>
-            <div class="toggle-switch">
-              <input type="checkbox" data-layer="nasa">
-              <div class="toggle-slider"></div>
-            </div>
-          </label>
-          
-          <label class="toggle-row">
-            <span class="toggle-label">🌿 Copernicus Land</span>
-            <div class="toggle-switch">
-              <input type="checkbox" data-layer="copernicus">
-              <div class="toggle-slider"></div>
-            </div>
-          </label>
-          
-          <label class="toggle-row">
-            <span class="toggle-label">🏔️ OpenTopoMap</span>
-            <div class="toggle-switch">
-              <input type="checkbox" data-layer="terrain">
-              <div class="toggle-slider"></div>
-            </div>
-          </label>
-        </div>
-      </div>
-      
-      <div class="settings-section">
-        <h3>Statistics</h3>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-value" id="stat-total">0</div>
-            <div class="stat-label">Commands</div>
+            <span id="mission-state" class="status-tag critical">CRITICAL</span>
           </div>
-          <div class="stat-card">
-            <div class="stat-value text-success" id="stat-recognized">0</div>
-            <div class="stat-label">Recognized</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value text-danger" id="stat-unknown">0</div>
-            <div class="stat-label">Unknown</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value text-primary" id="stat-accuracy">—</div>
-            <div class="stat-label">Accuracy</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value text-info" id="stat-latency">—</div>
-            <div class="stat-label">Avg Latency</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value" id="stat-session">0s</div>
-            <div class="stat-label">Session Time</div>
-          </div>
-        </div>
-        
-        <div class="action-buttons mt-3">
-          <button class="btn btn-outline" id="export-json">Export JSON</button>
-          <button class="btn btn-outline" id="export-csv">Export CSV</button>
-          <button class="btn btn-danger" id="reset-stats">Reset</button>
-        </div>
-      </div>
+          <p id="mission-summary" class="mission-summary">Flood-response coordination across the Rishikesh corridor with live priority zones and field assets.</p>
 
+          <div id="scenario-list" class="scenario-list" role="tablist" aria-label="Mission scenarios">
+            <button class="scenario-card active" data-scenario="monsoon" type="button" role="tab" aria-selected="true">
+              <span class="scenario-index">A1</span>
+              <span><strong>Monsoon Sentinel</strong><small>Uttarakhand / flood response</small></span>
+              <i>86</i>
+            </button>
+            <button class="scenario-card" data-scenario="wildfire" type="button" role="tab" aria-selected="false">
+              <span class="scenario-index">B7</span>
+              <span><strong>Wildfire Atlas</strong><small>California / containment</small></span>
+              <i>72</i>
+            </button>
+            <button class="scenario-card" data-scenario="urban" type="button" role="tab" aria-selected="false">
+              <span class="scenario-index">C4</span>
+              <span><strong>Urban Pulse</strong><small>Mumbai / mobility network</small></span>
+              <i>41</i>
+            </button>
+          </div>
+        </section>
+
+        <section class="control-section">
+          <div class="section-label"><span>DATA LAYERS</span><small id="layer-count">5 ACTIVE</small></div>
+          <div class="layer-stack">
+            <label class="layer-row">
+              <span class="layer-symbol basemap-symbol"></span>
+              <span><strong>Dark operations</strong><small>Vector basemap</small></span>
+              <input type="radio" name="basemap" value="dark" checked>
+              <i></i>
+            </label>
+            <label class="layer-row">
+              <span class="layer-symbol satellite-symbol"></span>
+              <span><strong>NASA satellite</strong><small>Global imagery</small></span>
+              <input type="radio" name="basemap" value="nasa">
+              <i></i>
+            </label>
+            <label class="layer-row">
+              <span class="layer-symbol terrain-symbol"></span>
+              <span><strong>Terrain</strong><small>OpenTopo relief</small></span>
+              <input type="radio" name="basemap" value="terrain">
+              <i></i>
+            </label>
+          </div>
+          <div class="overlay-grid">
+            <label><input type="checkbox" data-overlay="risk" checked><span>Risk field</span><i></i></label>
+            <label><input type="checkbox" data-overlay="perimeter" checked><span>Perimeters</span><i></i></label>
+            <label><input type="checkbox" data-overlay="routes" checked><span>Response routes</span><i></i></label>
+            <label><input type="checkbox" data-overlay="assets" checked><span>Field assets</span><i></i></label>
+          </div>
+        </section>
+
+        <section class="engine-section">
+          <div class="section-label"><span>VOICE ENGINE ROUTER</span><small>LAZY LOAD</small></div>
+          <select id="engine-select" class="engine-select" aria-label="Voice recognition engine">
+            <option value="auto">Auto / hybrid routing</option>
+            <option value="webspeech">Cloud / Web Speech</option>
+            <option value="whisper">Local / Whisper AI</option>
+            <option value="tfjs">Edge / TF.js command mode</option>
+            <option value="server">Private / Whisper server</option>
+          </select>
+          <div class="engine-route" aria-hidden="true">
+            <span class="route-node active">INPUT</span><i></i>
+            <span class="route-node">ROUTER</span><i></i>
+            <span class="route-node accent">INTENT</span>
+          </div>
+          <p id="engine-detail">Selects the lowest-latency available engine and falls back without losing the command session.</p>
+        </section>
+      </aside>
+
+      <section class="map-stage" aria-label="Operational map">
+        <div id="leaflet-map" class="map-container active"></div>
+        <div id="ol-map" class="map-container"></div>
+        <div class="map-vignette"></div>
+        <div class="map-grid"></div>
+        <div class="scan-line"></div>
+
+        <div class="map-head">
+          <div class="map-context">
+            <span id="mission-code">MISSION A1</span>
+            <h2 id="map-title">RISHIKESH RESPONSE CORRIDOR</h2>
+            <small id="map-subtitle">30.0869° N / 78.2676° E / LIVE OPERATIONAL PICTURE</small>
+          </div>
+          <div class="map-kpis">
+            <div><small>FIELD ASSETS</small><strong id="asset-count">14</strong></div>
+            <div><small>PRIORITY ZONES</small><strong id="zone-count">03</strong></div>
+            <div><small>COVERAGE</small><strong id="coverage-value">86%</strong></div>
+          </div>
+        </div>
+
+        <div class="map-controls" aria-label="Map controls">
+          <button id="zoom-in" type="button" aria-label="Zoom in">+</button>
+          <button id="zoom-out" type="button" aria-label="Zoom out">−</button>
+          <button id="reset-view" type="button" aria-label="Reset mission view">⌂</button>
+          <button id="locate-me" type="button" aria-label="Locate me">◎</button>
+        </div>
+
+        <div class="map-scale">
+          <span id="map-coordinates">30.0869, 78.2676</span>
+          <i></i>
+          <span id="map-zoom">Z10</span>
+          <i></i>
+          <span id="map-engine">LEAFLET</span>
+        </div>
+
+        <div id="command-deck" class="command-deck">
+          <div class="command-topline">
+            <span class="command-mode"><i></i> NATURAL LANGUAGE COMMAND BUS</span>
+            <span id="command-state">READY FOR INPUT</span>
+          </div>
+          <form id="command-form" class="command-form">
+            <span class="prompt-mark">›</span>
+            <label class="sr-only" for="command-input">Enter a map command</label>
+            <input id="command-input" type="text" autocomplete="off" spellcheck="false" placeholder='Try “zoom to Delhi and show satellite”'>
+            <canvas id="waveform-canvas" width="180" height="34" aria-hidden="true"></canvas>
+            <button id="voice-button" class="voice-button" type="button" aria-label="Start voice recognition"><span></span><i></i></button>
+            <button class="execute-button" type="submit">EXECUTE <span>↵</span></button>
+          </form>
+          <div id="command-suggestions" class="command-suggestions" aria-label="Suggested commands"></div>
+        </div>
+      </section>
+
+      <aside id="intel-panel" class="side-panel intel-panel">
+        <div class="panel-heading">
+          <span class="eyebrow">02 / INTENT COMPILER</span>
+          <button class="mobile-close" data-close-panel="intel-panel" type="button" aria-label="Close intent panel">×</button>
+          <span id="compiler-latency" class="compiler-latency">0.0 MS</span>
+        </div>
+
+        <section class="compiler-section">
+          <div id="pipeline" class="pipeline">
+            <div class="pipeline-step idle" data-stage="capture"><i>01</i><span><strong>Capture</strong><small>Awaiting transcript</small></span><em>—</em></div>
+            <div class="pipeline-step idle" data-stage="segment"><i>02</i><span><strong>Chain segmentation</strong><small>No command graph</small></span><em>—</em></div>
+            <div class="pipeline-step idle" data-stage="resolve"><i>03</i><span><strong>Intent resolution</strong><small>538-case benchmark</small></span><em>—</em></div>
+            <div class="pipeline-step idle" data-stage="execute"><i>04</i><span><strong>Spatial execution</strong><small>Map adapter idle</small></span><em>—</em></div>
+          </div>
+
+          <div class="compiled-card">
+            <div class="code-heading"><span>COMPILED INTENT</span><button id="copy-intent" type="button">COPY</button></div>
+            <pre id="compiled-intent"><code>{
+  "status": "standby",
+  "adapter": "leaflet",
+  "commands": []
+}</code></pre>
+          </div>
+        </section>
+
+        <section class="history-section">
+          <div class="section-label"><span>COMMAND EVIDENCE</span><button id="export-log" type="button">EXPORT JSON</button></div>
+          <ol id="command-history" class="command-history">
+            <li class="empty-history"><span>00</span><p>No commands executed.<br>Use voice or the command bus.</p></li>
+          </ol>
+        </section>
+
+        <section class="accuracy-section">
+          <div class="accuracy-ring" id="accuracy-ring" style="--accuracy: 93.7">
+            <span><strong id="session-accuracy">93.7%</strong><small>PARSER BASELINE</small></span>
+          </div>
+          <div class="accuracy-meta">
+            <p><span>SESSION COMMANDS</span><strong id="session-commands">0</strong></p>
+            <p><span>AVG LATENCY</span><strong id="average-latency">—</strong></p>
+            <p><span>UNKNOWN</span><strong id="unknown-count">0</strong></p>
+          </div>
+        </section>
+      </aside>
+    </main>
+
+    <div class="mobile-dock">
+      <button data-open-panel="mission-panel" type="button">OPERATIONS</button>
+      <button id="mobile-command" type="button">COMMAND</button>
+      <button data-open-panel="intel-panel" type="button">INTENT</button>
     </div>
+
+    <div id="telemetry-drawer" class="telemetry-drawer" aria-hidden="true" inert>
+      <div class="telemetry-head">
+        <div><small>SYSTEM TELEMETRY</small><h2>VoiceGIS Runtime</h2></div>
+        <button id="telemetry-close" type="button" aria-label="Close telemetry">×</button>
+      </div>
+      <div class="telemetry-grid">
+        <article><span>01</span><small>ENGINE PROFILES</small><strong>5</strong><p>Cloud, local, edge, server, and automatic failover.</p></article>
+        <article><span>02</span><small>BENCHMARK CASES</small><strong>538</strong><p>Regression-tested navigation, layer, typo, and edge commands.</p></article>
+        <article><span>03</span><small>MAP ADAPTERS</small><strong>2</strong><p>Leaflet and OpenLayers behind one execution contract.</p></article>
+        <article><span>04</span><small>OFFLINE PATH</small><strong>100%</strong><p>Local city index, on-device Whisper, cache-first field shell.</p></article>
+      </div>
+      <div class="architecture-line">
+        <span>AUDIO</span><i></i><span>ENGINE ROUTER</span><i></i><span>COMMAND GRAPH</span><i></i><span>GIS ADAPTER</span>
+      </div>
+    </div>
+    <div id="drawer-backdrop" class="drawer-backdrop"></div>
+    <div id="toast-region" class="toast-region" aria-live="polite"></div>
   </div>
-  
-  <div class="drawer-backdrop" id="drawer-backdrop"></div>
 
-  <!-- ── Status Bar (Bottom Left) ────────────────────────── -->
-  <div class="bottom-status glass-panel">
-    <div class="coords" id="status-coords">Lat/Lng: —</div>
-    <div class="zoom" id="status-zoom">Zoom: —</div>
-  </div>
-
-</div><!-- #app -->
-
-<!-- ── Notifications ─────────────────────────────────────── -->
-<div id="notif-container"></div>
-
-<!-- ── External libraries (CDN) ──────────────────────────── -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/ol@v9.2.4/dist/ol.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/speech-commands@0.5.4/dist/speech-commands.min.js"></script>
-
-<!-- ── Application entry point (ES module) ───────────────── -->
-<script type="module" src="main.js"></script>
-
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ol@v9.2.4/dist/ol.js"></script>
+  <script type="module" src="./main.js"></script>
 </body>
 </html>

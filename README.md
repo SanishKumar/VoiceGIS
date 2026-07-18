@@ -5,6 +5,7 @@
   <p>
     <a href="https://www.npmjs.com/package/voicegis"><img src="https://img.shields.io/npm/v/voicegis" alt="NPM Version" /></a>
     <img src="https://img.shields.io/npm/unpacked-size/voicegis" alt="Package Size" />
+    <a href="https://SanishKumar.github.io/VoiceGIS/"><img src="https://img.shields.io/badge/live-VoiceGIS_Atlas-ff6b35" alt="Live VoiceGIS Atlas demo" /></a>
     <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" />
   </p>
 </div>
@@ -12,6 +13,14 @@
 ---
 
 **VoiceGIS** is a JavaScript library that adds powerful voice-control capabilities to web-based maps (Leaflet and OpenLayers). It uses a **hybrid architecture** with multiple deployment profiles—ranging from fast online cloud STT, to robust on-device AI (Whisper), down to constrained offline edge keyword spotting.
+
+## VoiceGIS Atlas
+
+**[Launch the live operations console →](https://SanishKumar.github.io/VoiceGIS/)**
+
+![VoiceGIS Atlas social preview](demo/public/og.png)
+
+Atlas is the production showcase for the SDK: three data-rich incident scenarios, animated geospatial overlays, typed and spoken multi-command input, a live intent compiler, command evidence export, offline field mode, and runtime switching between Leaflet and OpenLayers. It is designed so every capability can be explored without granting microphone access.
 
 ## 🚀 Why Hybrid? (Reality Check)
 

@@ -16,6 +16,10 @@ import { Geocoder } from './geocoder.js';
 export const INTENT = {
   ZOOM_IN: 'zoom_in',
   ZOOM_OUT: 'zoom_out',
+  PAN_LEFT: 'pan_left',
+  PAN_RIGHT: 'pan_right',
+  PAN_UP: 'pan_up',
+  PAN_DOWN: 'pan_down',
   GO_TO: 'go_to',
   SHOW_LAYER: 'show_layer',
   HIDE_LAYER: 'hide_layer',
@@ -90,6 +94,11 @@ export const LAYER_ALIASES = {
   streets: 'osm',
   'open street': 'osm',
   openstreetmap: 'osm',
+  dark: 'dark',
+  'dark map': 'dark',
+  night: 'dark',
+  'night mode': 'dark',
+  operations: 'dark',
   satellite: 'nasa',
   'satellite view': 'nasa',
   nasa: 'nasa',
@@ -115,6 +124,14 @@ const SIMPLE_INTENT_PHRASES = {
   'zoom out': { intent: INTENT.ZOOM_OUT },
   'shrink': { intent: INTENT.ZOOM_OUT },
   'minify': { intent: INTENT.ZOOM_OUT },
+  'pan left': { intent: INTENT.PAN_LEFT },
+  'move left': { intent: INTENT.PAN_LEFT },
+  'pan right': { intent: INTENT.PAN_RIGHT },
+  'move right': { intent: INTENT.PAN_RIGHT },
+  'pan up': { intent: INTENT.PAN_UP },
+  'move north': { intent: INTENT.PAN_UP },
+  'pan down': { intent: INTENT.PAN_DOWN },
+  'move south': { intent: INTENT.PAN_DOWN },
   'reset view': { intent: INTENT.RESET_VIEW },
   'home': { intent: INTENT.RESET_VIEW },
   'default view': { intent: INTENT.RESET_VIEW },
@@ -164,6 +181,22 @@ export async function parseCommand(text, options = {}) {
 
   if (/\bzoom\s*out\b/.test(t) || /\bless\s+zoom\b/.test(t) || t === 'down' || /\bshrink\b/.test(t) || /\bminify\b/.test(t)) {
     return { intent: INTENT.ZOOM_OUT, payload: {}, raw, confidence: 0.95 };
+  }
+
+  const panMatch = t.match(/\b(?:pan|move|slide)\s+(left|right|up|down|north|south|east|west)\b/);
+  if (panMatch) {
+    const direction = panMatch[1];
+    const intentByDirection = {
+      left: INTENT.PAN_LEFT,
+      west: INTENT.PAN_LEFT,
+      right: INTENT.PAN_RIGHT,
+      east: INTENT.PAN_RIGHT,
+      up: INTENT.PAN_UP,
+      north: INTENT.PAN_UP,
+      down: INTENT.PAN_DOWN,
+      south: INTENT.PAN_DOWN,
+    };
+    return { intent: intentByDirection[direction], payload: {}, raw, confidence: 0.94 };
   }
 
   if (/\b(reset|home|default)\s*(view|map|zoom)?\b/.test(t)) {
@@ -320,7 +353,8 @@ function findCityInText(text) {
   // Sort by length descending so multi-word names match before substrings
   const names = Object.keys(CITY_COORDS).sort((a, b) => b.length - a.length);
   for (const name of names) {
-    if (text.includes(name)) {
+    const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (new RegExp(`(?:^|\\s)${escapedName}(?:$|[\\s,?.!])`, 'i').test(text)) {
       return { name, coords: CITY_COORDS[name] };
     }
   }

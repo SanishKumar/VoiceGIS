@@ -93,6 +93,16 @@ export class MapController {
     this._mutate('zoomOut', () => this._adapter.zoomOut());
   }
 
+  /** Pan the viewport by a quarter of its visible width or height. */
+  pan(direction) {
+    this._mutate('pan', () => this._adapter.pan(direction), { direction });
+  }
+
+  panLeft() { this.pan('left'); }
+  panRight() { this.pan('right'); }
+  panUp() { this.pan('up'); }
+  panDown() { this.pan('down'); }
+
   /**
    * Fly / pan to a location.
    * @param {[number, number]} latLng - [latitude, longitude]

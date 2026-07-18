@@ -123,7 +123,7 @@ export class TfjsEngine {
       return;
     }
 
-    this._tfjsModel.listen(
+    const listenPromise = this._tfjsModel.listen(
       (result) => {
         const scores = result.scores;
         const words = this._tfjsModel.wordLabels();
@@ -170,6 +170,12 @@ export class TfjsEngine {
         overlapFactor: 0.3,
       }
     );
+
+    Promise.resolve(listenPromise).catch((error) => {
+      this._isListening = false;
+      this.onError(new Error(`TF.js microphone start failed: ${error.message}`));
+      this.onEnd();
+    });
   }
 
   _stopListening() {

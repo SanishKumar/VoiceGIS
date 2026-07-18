@@ -34,3 +34,9 @@ jobs:
       
     - name: Run Evaluation Benchmarks
       run: npm run evaluate
+
+    - name: Build library and declarations
+      run: npm run build
+
+    - name: Build production demo
+      run: npm run build:demo

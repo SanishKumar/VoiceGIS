@@ -68,6 +68,25 @@ export class OpenLayersAdapter {
     view.animate({ zoom: view.getZoom() - 1, duration: 300 });
   }
 
+  /** Pan by a quarter viewport in the requested direction. */
+  pan(direction) {
+    const view = this._map.getView();
+    const center = view.getCenter();
+    const resolution = view.getResolution() || 1;
+    const size = this._map.getSize() || [0, 0];
+    const offsets = {
+      left: [-size[0] * resolution * 0.25, 0],
+      right: [size[0] * resolution * 0.25, 0],
+      up: [0, size[1] * resolution * 0.25],
+      down: [0, -size[1] * resolution * 0.25],
+    };
+    const offset = offsets[direction] || [0, 0];
+    view.animate({
+      center: [center[0] + offset[0], center[1] + offset[1]],
+      duration: 320,
+    });
+  }
+
   /**
    * Fly to a location.
    * @param {[number, number]} latLng - [latitude, longitude]

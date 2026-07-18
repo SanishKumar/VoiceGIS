@@ -1,8 +1,8 @@
 {
   "name": "voicegis",
   "version": "2.0.0-beta.2",
-  "description": "Voice-Enabled Geospatial Map Web Application — offline-first voice command interface for Leaflet and OpenLayers",
-  "main": "dist/voicegis.umd.js",
+  "description": "Voice-enabled spatial intelligence console with offline-first commands for Leaflet and OpenLayers",
+  "main": "dist/voicegis.umd.cjs",
   "module": "dist/voicegis.es.js",
   "types": "dist/types/index.d.ts",
   "type": "module",
@@ -10,7 +10,7 @@
     ".": {
       "types": "./dist/types/index.d.ts",
       "import": "./dist/voicegis.es.js",
-      "require": "./dist/voicegis.umd.js"
+      "require": "./dist/voicegis.umd.cjs"
     },
     "./engines": "./src/engines/index.js",
     "./parser": "./src/parser/index.js",
@@ -26,12 +26,13 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && npm run build:types",
-    "build:demo": "vite build --config vite.demo.config.js",
-    "build:types": "tsc --project jsconfig.json || exit 0",
+    "build:demo": "vite build --config vite.demo.config.js && node scripts/normalize-demo-build.js",
+    "build:sites": "npm run build && npm run build:demo && node scripts/build-sites.js",
+    "build:types": "tsc --project jsconfig.json",
     "preview": "vite preview",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
     "evaluate": "node scripts/evaluate.js",
-    "lint": "eslint src/ demo/"
+    "lint": "eslint src/ demo/ scripts/ sites/"
   },
   "jest": {
     "testEnvironment": "node",
@@ -55,12 +56,12 @@
   "author": "blazing_helios",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/SanishKumar/Voice_map.git"
+    "url": "git+https://github.com/SanishKumar/VoiceGIS.git"
   },
   "bugs": {
-    "url": "https://github.com/SanishKumar/Voice_map/issues"
+    "url": "https://github.com/SanishKumar/VoiceGIS/issues"
   },
-  "homepage": "https://github.com/SanishKumar/Voice_map#readme",
+  "homepage": "https://SanishKumar.github.io/VoiceGIS/",
   "funding": {
     "type": "github",
     "url": "https://github.com/sponsors/SanishKumar"
@@ -80,6 +81,10 @@
     "ol": {
       "optional": true
     }
+  },
+  "overrides": {
+    "adm-zip": "0.6.0",
+    "picomatch@^2.0.0": "2.3.2"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",

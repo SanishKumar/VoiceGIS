@@ -129,6 +129,7 @@ export class WhisperServerEngine {
     this._setState(SERVER_STATE.PROCESSING);
     this.onResult('Processing...', false);
 
+    let timeoutId = null;
     try {
       const wavBlob = this._encodeWAV(buffer, 16000);
       
@@ -136,15 +137,13 @@ export class WhisperServerEngine {
       formData.append('audio_file', wavBlob, 'recording.wav');
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.requestTimeoutMs);
+      timeoutId = setTimeout(() => controller.abort(), this.requestTimeoutMs);
 
       const response = await fetch(this.apiUrl, {
         method: 'POST',
         body: formData,
         signal: controller.signal
       });
-
-      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`Server responded with ${response.status}: ${response.statusText}`);
@@ -163,6 +162,7 @@ export class WhisperServerEngine {
         this.onError(new Error(`Whisper Server error: ${err.message}`));
       }
     } finally {
+      if (timeoutId !== null) clearTimeout(timeoutId);
       if (this._isListening) {
         this._setState(SERVER_STATE.LISTENING);
       } else {

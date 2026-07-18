@@ -29,7 +29,7 @@ export class VoiceGIS {
   constructor(options = {}) {
     this.options = {
       mapEngine: MAP_ENGINE.LEAFLET,
-      speechEngine: ENGINE_TYPE.WEB_SPEECH,
+      speechEngine: 'auto',
       autoExecute: true,
       enableGeocoding: true,
       enableHistory: true,
@@ -85,7 +85,8 @@ export class VoiceGIS {
       const hasWebSpeech = typeof window !== 'undefined' && 
         (window.SpeechRecognition || window.webkitSpeechRecognition);
       
-      if (hasWebSpeech && navigator.onLine) {
+      const isOnline = typeof navigator === 'undefined' || navigator.onLine;
+      if (hasWebSpeech && isOnline) {
         targetEngine = ENGINE_TYPE.WEB_SPEECH;
       } else {
         targetEngine = ENGINE_TYPE.WHISPER;
@@ -147,8 +148,9 @@ export class VoiceGIS {
     }
     
     // Check auto fallback condition dynamically
-    if (this.options.speechEngine === 'auto' && 
+    if (this.options.speechEngine === 'auto' &&
         this.speech.engine === ENGINE_TYPE.WEB_SPEECH && 
+        typeof navigator !== 'undefined' &&
         !navigator.onLine) {
       console.warn('Went offline, switching Auto engine to Whisper');
       this._instantiateEngine(ENGINE_TYPE.WHISPER).then(() => this.speech.start());
@@ -198,7 +200,8 @@ export class VoiceGIS {
       geocoder: defaultGeocoder
     });
 
-    for (const result of results) {
+    for (let resultIndex = 0; resultIndex < results.length; resultIndex++) {
+      const result = results[resultIndex];
       // Allow custom commands to override built-in parsing
       let finalResult = result;
       let matchedCustom = false;
@@ -228,7 +231,7 @@ export class VoiceGIS {
           if (matchedCustom) {
             ctx.result.action(this.map, ctx.result.payload.match);
           } else {
-            this._executeBuiltIn(ctx.result);
+            await this._executeBuiltIn(ctx.result);
           }
         }
         await next();
@@ -249,7 +252,7 @@ export class VoiceGIS {
       await runner(0);
 
       // Optional delay between chained commands could be added here
-      if (results.length > 1) {
+      if (resultIndex < results.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
@@ -258,11 +261,11 @@ export class VoiceGIS {
   /**
    * Execute built-in map actions.
    */
-  _executeBuiltIn(result) {
+  async _executeBuiltIn(result) {
     // Determine if command modifies the map view
     const isStatefulCommand = [
-      INTENT.ZOOM_IN, INTENT.ZOOM_OUT, INTENT.GO_TO, 
-      INTENT.ADD_MARKER, INTENT.RESET_VIEW
+      INTENT.ZOOM_IN, INTENT.ZOOM_OUT, INTENT.PAN_LEFT, INTENT.PAN_RIGHT,
+      INTENT.PAN_UP, INTENT.PAN_DOWN, INTENT.GO_TO, INTENT.RESET_VIEW
     ].includes(result.intent);
 
     if (isStatefulCommand && this.history) {
@@ -276,6 +279,18 @@ export class VoiceGIS {
       case INTENT.ZOOM_OUT:
         this.map.zoomOut();
         break;
+      case INTENT.PAN_LEFT:
+        this.map.panLeft();
+        break;
+      case INTENT.PAN_RIGHT:
+        this.map.panRight();
+        break;
+      case INTENT.PAN_UP:
+        this.map.panUp();
+        break;
+      case INTENT.PAN_DOWN:
+        this.map.panDown();
+        break;
       case INTENT.GO_TO:
         this.map.goTo(result.payload.coords, 12, result.payload.place);
         break;
@@ -287,7 +302,7 @@ export class VoiceGIS {
         break;
       case INTENT.ADD_MARKER:
         if (result.payload.useCurrentLocation) {
-          this.map.addMarkerAtCurrentLocation();
+          await this.map.addMarkerAtCurrentLocation();
         } else {
           const c = this.map.getCenter();
           this.map.addMarker([c.lat, c.lng], '📍 Marker');
@@ -297,7 +312,9 @@ export class VoiceGIS {
         this.map.resetView();
         break;
       case INTENT.SWITCH_MAP:
-        console.warn('Map engine switching is not supported via auto-execute in the Orchestrator.');
+        if (result.payload.engine && result.payload.engine !== this.map.engine) {
+          this.initMap(result.payload.engine, this.map.containerId);
+        }
         break;
       case INTENT.UNDO:
         if (this.history) {

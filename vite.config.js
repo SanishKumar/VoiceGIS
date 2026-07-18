@@ -18,7 +18,7 @@ export default defineConfig({
       entry: resolve(__dirname, 'src/index.js'),
       name: 'VoiceGIS',
       formats: ['es', 'umd'],
-      fileName: (format) => `voicegis.${format}.js`,
+      fileName: (format) => format === 'umd' ? 'voicegis.umd.cjs' : 'voicegis.es.js',
     },
     outDir: 'dist',
     rollupOptions: {

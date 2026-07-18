@@ -80,6 +80,23 @@ describe('parseCommand — zoom', () => {
   });
 });
 
+describe('parseCommand — pan', () => {
+  test('pan left', async () => {
+    const r = await parseCommand('pan left');
+    expect(r.intent).toBe(INTENT.PAN_LEFT);
+  });
+
+  test('move east maps to pan right', async () => {
+    const r = await parseCommand('move east');
+    expect(r.intent).toBe(INTENT.PAN_RIGHT);
+  });
+
+  test('move north maps to pan up', async () => {
+    const r = await parseCommand('move north');
+    expect(r.intent).toBe(INTENT.PAN_UP);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // parseCommand — go to
 // ---------------------------------------------------------------------------

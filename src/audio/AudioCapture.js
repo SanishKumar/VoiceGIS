@@ -60,20 +60,29 @@ export class AudioCapture {
   async start() {
     if (this._isCapturing) return;
 
-    // Request microphone
-    this._stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        channelCount: 1,
-        sampleRate: { ideal: this.targetSampleRate },
-        echoCancellation: true,
-        noiseSuppression: true,
-      },
-    });
+    try {
+      // Request microphone
+      this._stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          channelCount: 1,
+          sampleRate: { ideal: this.targetSampleRate },
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
+      });
 
-    // Create audio context
-    this._audioContext = new (window.AudioContext || window.webkitAudioContext)({
-      sampleRate: this.targetSampleRate,
-    });
+      // Browsers may ignore the requested context sample rate. Captured chunks
+      // are resampled below so Whisper always receives true 16 kHz PCM.
+      this._audioContext = new (window.AudioContext || window.webkitAudioContext)({
+        sampleRate: this.targetSampleRate,
+      });
+    } catch (error) {
+      if (this._stream) {
+        this._stream.getTracks().forEach((track) => track.stop());
+        this._stream = null;
+      }
+      throw error;
+    }
 
     // Source node from microphone
     this._source = this._audioContext.createMediaStreamSource(this._stream);
@@ -93,8 +102,8 @@ export class AudioCapture {
       if (!this._isCapturing) return;
 
       const inputData = event.inputBuffer.getChannelData(0);
-      const chunk = new Float32Array(inputData.length);
-      chunk.set(inputData);
+      const inputRate = event.inputBuffer.sampleRate || this._audioContext.sampleRate;
+      const chunk = this._resample(inputData, inputRate, this.targetSampleRate);
 
       // Accumulate buffer
       this._bufferChunks.push(chunk);
@@ -107,7 +116,7 @@ export class AudioCapture {
       this._checkSilence(chunk);
 
       // Auto-flush if buffer is too long
-      const bufferDurationMs = (this._bufferSampleCount / this._audioContext.sampleRate) * 1000;
+      const bufferDurationMs = (this._bufferSampleCount / this.targetSampleRate) * 1000;
       if (bufferDurationMs >= this.maxBufferDurationMs) {
         this._triggerSilence();
       }
@@ -254,6 +263,33 @@ export class AudioCapture {
       sum += buffer[i] * buffer[i];
     }
     return Math.sqrt(sum / buffer.length);
+  }
+
+  /**
+   * Resample a PCM chunk using linear interpolation.
+   * @param {Float32Array} input
+   * @param {number} inputRate
+   * @param {number} outputRate
+   * @returns {Float32Array}
+   */
+  _resample(input, inputRate, outputRate) {
+    if (inputRate === outputRate || input.length === 0) {
+      return new Float32Array(input);
+    }
+
+    const outputLength = Math.max(1, Math.round(input.length * outputRate / inputRate));
+    const output = new Float32Array(outputLength);
+    const ratio = inputRate / outputRate;
+
+    for (let i = 0; i < outputLength; i++) {
+      const sourceIndex = i * ratio;
+      const lower = Math.floor(sourceIndex);
+      const upper = Math.min(lower + 1, input.length - 1);
+      const weight = sourceIndex - lower;
+      output[i] = input[lower] * (1 - weight) + input[upper] * weight;
+    }
+
+    return output;
   }
 
   // ---------------------------------------------------------------------------

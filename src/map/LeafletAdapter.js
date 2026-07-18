@@ -73,6 +73,18 @@ export class LeafletAdapter {
     this._map.zoomOut();
   }
 
+  /** Pan by a quarter viewport in the requested direction. */
+  pan(direction) {
+    const size = this._map.getSize();
+    const offsets = {
+      left: [-size.x * 0.25, 0],
+      right: [size.x * 0.25, 0],
+      up: [0, -size.y * 0.25],
+      down: [0, size.y * 0.25],
+    };
+    this._map.panBy(offsets[direction] || [0, 0], { animate: true });
+  }
+
   /**
    * Fly to a location.
    * @param {[number, number]} latLng - [latitude, longitude]
