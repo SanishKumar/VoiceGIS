@@ -30,6 +30,7 @@ const gis = createVoiceGISCore({
 | `enableGeocoding` | `boolean` | `false` | Allows the legacy navigation fallback to use the supplied geocoder |
 | `geocoder` | `object` | Legacy geocoder | Object with an async `geocode(place)` method |
 | `resolvers` | `Function[]` | `[]` | Domain-specific command resolvers, evaluated before built-ins |
+| `strictCatalogVersion` | `boolean` | `true` | Rejects execution when the plan and trusted catalog versions differ |
 | `clock` | `Function` | `Date.now` | Time source used by plans and receipts |
 
 ### `VoiceGISCore.compile(input)`
@@ -82,6 +83,26 @@ Methods:
 | `resolveField(layer, value, options?)` | Match or `null` | Resolves a field within one layer |
 | `supports(layer, operationType)` | `boolean` | Checks a declared layer capability; omitted capability lists defer to the adapter |
 | `toJSON()` | `object` | Returns the serializable catalog |
+
+## Catalog-bound plan validation
+
+`VoiceGISCore` automatically validates plans against its catalog immediately
+before execution. The check uses stable ids only and rejects stale catalog
+versions, unknown layer ids, unknown predicate fields, invalid predicate shapes,
+duplicate operation ids, and missing layer capabilities.
+
+Use `validateCommandPlan` when validation and execution happen in different
+services:
+
+```js
+import { validateCommandPlan } from 'voicegis/core';
+
+const { valid, issues } = validateCommandPlan(plan, trustedServerCatalog);
+```
+
+For a reusable validator, construct
+`new CommandPlanValidator(catalog, { strictCatalogVersion: true })` and call
+`validator.validate(plan)`.
 
 ## `CommandPolicy`
 
@@ -216,7 +237,7 @@ Custom adapters can implement this contract directly.
 ## `CommandExecutor`
 
 ```js
-const executor = new CommandExecutor({ adapter, policy });
+const executor = new CommandExecutor({ adapter, policy, catalog });
 const receipt = await executor.execute(plan, {
   confirm: async (operation, plan) => true,
   signal: abortController.signal,
@@ -227,11 +248,17 @@ const receipt = await executor.execute(plan, {
 
 Execution is preflighted before the first handler runs. Policy denial, missing adapter capability, missing confirmation, or an already-aborted signal produces a receipt without performing the operation.
 
+When `catalog` is supplied, preflight also validates the plan schema, catalog
+version, stable layer ids, referenced layers, predicate fields, and declared
+layer capabilities. `VoiceGISCore` supplies its catalog automatically. A
+standalone executor remains backward-compatible when no catalog is supplied.
+
 Receipt statuses are `succeeded`, `partial`, `failed`, `cancelled`, and `needs_confirmation`.
 
 Lifecycle event types:
 
 - `execution.started`
+- `execution.rejected`
 - `operation.confirmed`
 - `operation.started`
 - `operation.completed`

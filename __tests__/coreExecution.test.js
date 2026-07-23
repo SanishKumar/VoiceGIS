@@ -5,6 +5,7 @@ import {
   OPERATION,
   createFunctionAdapter,
   createVoiceGISCore,
+  validateCommandPlan,
 } from '../src/core/index.js';
 
 const fixedClock = () => Date.UTC(2026, 6, 18);
@@ -236,5 +237,97 @@ describe('VoiceGISCore', () => {
     expect(result.plan.status).toBe('ready');
     expect(result.receipt.status).toBe('succeeded');
     expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  test('rejects a plan whose layer id was changed after compilation', async () => {
+    const handler = jest.fn(async () => []);
+    const core = createVoiceGISCore({
+      clock: fixedClock,
+      catalog: {
+        version: 'tenant-a:7',
+        layers: [{
+          id: 'parcels',
+          aliases: ['plots'],
+          fields: [{ id: 'status', type: 'string' }],
+          capabilities: [OPERATION.QUERY_FILTER],
+        }],
+      },
+      adapter: createFunctionAdapter({ [OPERATION.QUERY_FILTER]: handler }),
+    });
+    const plan = await core.compile('filter parcels where status is active');
+    // Labels and aliases are compiler input only; execution requires the canonical id.
+    plan.operations[0].target.layerId = 'plots';
+    const events = [];
+
+    const receipt = await core.execute(plan, {
+      onEvent: (event) => events.push(event.type),
+    });
+
+    expect(receipt.status).toBe('failed');
+    expect(receipt.results[0].error.name).toBe('PlanValidationError');
+    expect(receipt.results[0].error.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'catalog_layer_unknown' }),
+    ]));
+    expect(events).toEqual([
+      'execution.started',
+      'execution.rejected',
+      'execution.completed',
+    ]);
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  test('rejects stale plans when the trusted catalog version has changed', async () => {
+    const handler = jest.fn(async () => []);
+    const core = createVoiceGISCore({
+      clock: fixedClock,
+      catalog: {
+        version: 'tenant-a:8',
+        layers: [{
+          id: 'parcels',
+          fields: [{ id: 'status', type: 'string' }],
+          capabilities: [OPERATION.QUERY_FILTER],
+        }],
+      },
+      adapter: createFunctionAdapter({ [OPERATION.QUERY_FILTER]: handler }),
+    });
+    const plan = await core.compile('filter parcels where status is active');
+    plan.meta.catalogVersion = 'tenant-a:7';
+
+    const receipt = await core.execute(plan);
+
+    expect(receipt.results[0].error.issues[0]).toMatchObject({
+      code: 'catalog_version_mismatch',
+      details: { actual: 'tenant-a:7', expected: 'tenant-a:8' },
+    });
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  test('rejects predicate fields that are not on the trusted target layer', async () => {
+    const handler = jest.fn(async () => []);
+    const catalog = {
+      version: 'tenant-a:8',
+      layers: [{
+        id: 'parcels',
+        fields: [{ id: 'status', type: 'string' }],
+        capabilities: [OPERATION.QUERY_FILTER],
+      }],
+    };
+    const core = createVoiceGISCore({
+      clock: fixedClock,
+      catalog,
+      adapter: createFunctionAdapter({ [OPERATION.QUERY_FILTER]: handler }),
+    });
+    const plan = await core.compile('filter parcels where status is active');
+    plan.operations[0].args.predicate.field = 'owner_ssn';
+
+    const validation = validateCommandPlan(plan, catalog);
+    const receipt = await core.execute(plan);
+
+    expect(validation).toMatchObject({
+      valid: false,
+      issues: [expect.objectContaining({ code: 'catalog_field_unknown' })],
+    });
+    expect(receipt.status).toBe('failed');
+    expect(handler).not.toHaveBeenCalled();
   });
 });

@@ -46,6 +46,9 @@ for (const [format, api] of [['ESM', esm], ['CommonJS', cjs]]) {
   if (typeof api.SpatialCommandCompiler !== 'function') {
     fail(`${format} core does not export SpatialCommandCompiler`);
   }
+  if (typeof api.validateCommandPlan !== 'function') {
+    fail(`${format} core does not export validateCommandPlan`);
+  }
 }
 
 const core = esm.createVoiceGISCore();

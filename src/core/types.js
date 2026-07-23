@@ -240,7 +240,20 @@ export const CORE_SCHEMA_VERSION = '1.0';
  * @typedef {object} ExecutorOptions
  * @property {VoiceGISAdapter} [adapter]
  * @property {PolicyEvaluator|CommandPolicyOptions} [policy]
+ * @property {import('./SpatialCatalog.js').SpatialCatalog|CatalogDefinition|Array<CatalogLayer|string>} [catalog]
+ * @property {boolean} [strictCatalogVersion]
  * @property {() => number} [clock]
+ */
+
+/**
+ * @typedef {object} PlanValidationOptions
+ * @property {boolean} [strictCatalogVersion]
+ */
+
+/**
+ * @typedef {object} PlanValidationResult
+ * @property {boolean} valid
+ * @property {PlanIssue[]} issues
  */
 
 /**
@@ -252,5 +265,5 @@ export const CORE_SCHEMA_VERSION = '1.0';
  */
 
 /**
- * @typedef {CompilerOptions & {adapter?: VoiceGISAdapter}} VoiceGISCoreOptions
+ * @typedef {CompilerOptions & {adapter?: VoiceGISAdapter, strictCatalogVersion?: boolean}} VoiceGISCoreOptions
  */

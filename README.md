@@ -33,6 +33,7 @@ VoiceGIS does not generate SQL, take ownership of your map, or require a particu
 
 - **Typed spatial plans:** `"area is greater than 2 hectares"` becomes a comparison AST, not an unsafe SQL string.
 - **Grounded commands:** layer names, aliases, fields, and supported actions come from your application catalog.
+- **Execution-bound validation:** stale or tampered plans are rejected against the trusted catalog before an adapter sees them.
 - **Safe execution:** view, query, edit, analysis, export, location, and admin permissions are evaluated before an adapter runs.
 - **Human checkpoints:** exports, edits, analysis, and other configured operations can require explicit confirmation.
 - **Capability contracts:** unsupported commands fail during preflight instead of halfway through a workflow.
@@ -156,6 +157,22 @@ const policy = new CommandPolicy({
 ```
 
 Policy is checked while compiling and checked again immediately before execution.
+
+Catalog grounding is also checked again immediately before execution. `VoiceGISCore`
+rejects changed layer ids, unknown predicate fields, missing layer capabilities,
+unsupported plan schemas, and plans compiled against a stale catalog version before
+the first adapter side effect.
+
+For an explicit server-side check, use the exported validator:
+
+```js
+import { validateCommandPlan } from 'voicegis/core';
+
+const validation = validateCommandPlan(clientPlan, serverCatalog);
+if (!validation.valid) {
+  return Response.json({ issues: validation.issues }, { status: 400 });
+}
+```
 
 ## Real workflows
 

@@ -1,4 +1,5 @@
 import { resolveCommandPolicy } from './CommandPolicy.js';
+import { CommandPlanValidator } from './CommandPlanValidator.js';
 
 function now(clock) {
   return new Date(clock()).toISOString();
@@ -24,9 +25,12 @@ export class CommandExecutor {
   /**
    * @param {import('./types.js').ExecutorOptions} [options]
    */
-  constructor({ adapter, policy, clock } = {}) {
+  constructor({ adapter, policy, catalog, strictCatalogVersion, clock } = {}) {
     this.adapter = adapter;
     this.policy = resolveCommandPolicy(policy);
+    this.planValidator = catalog
+      ? new CommandPlanValidator(catalog, { strictCatalogVersion })
+      : null;
     this.clock = clock || Date.now;
   }
 
@@ -80,6 +84,21 @@ export class CommandExecutor {
         },
       });
       return finish('failed');
+    }
+    if (this.planValidator) {
+      const validation = this.planValidator.validate(plan);
+      if (!validation.valid) {
+        receipt.results.push({
+          status: 'failed',
+          error: {
+            name: 'PlanValidationError',
+            message: 'The plan failed trusted catalog validation.',
+            issues: validation.issues,
+          },
+        });
+        emit('execution.rejected', { issues: validation.issues });
+        return finish('failed');
+      }
     }
     if (options.signal?.aborted) return finish('cancelled');
 

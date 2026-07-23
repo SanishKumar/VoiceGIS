@@ -167,6 +167,23 @@ client transcript
 
 Do not trust a client-created plan as authorization. The plan is an interoperable request and audit format, not a security token.
 
+`VoiceGISCore` now revalidates the plan against its trusted catalog at execution
+time. For split client/server deployments, validate the submitted plan with the
+server-owned catalog before passing it to an executor:
+
+```js
+import { validateCommandPlan } from 'voicegis/core';
+
+const validation = validateCommandPlan(request.body.plan, serverCatalog);
+if (!validation.valid) {
+  return reply.status(400).send({ issues: validation.issues });
+}
+```
+
+Catalog versions are strict by default, so permission or schema changes
+invalidate plans compiled against an older catalog instead of silently executing
+them under new assumptions.
+
 ## Add domain phrases
 
 Custom resolvers are useful for business language that maps to a stable built-in operation:
@@ -221,7 +238,7 @@ Use interim transcripts only for UI feedback. Compile a final transcript to avoi
 - Start with the default view/query policy and add permissions deliberately.
 - Require confirmation for exports, edits, analysis, and custom high-impact work.
 - Translate the predicate AST using parameterized SDK/backend APIs.
-- Revalidate catalog ids, units, and policy on the server.
+- Revalidate catalog ids and policy on the server; keep strict catalog-version checks enabled.
 - Pass an `AbortSignal` when operations can be cancelled.
 - Store receipts with actor, tenant, catalog version, and request correlation id.
 - Test common accents and transcription mistakes using the actual speech provider.

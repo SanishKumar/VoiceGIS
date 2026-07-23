@@ -22,6 +22,8 @@ export class VoiceGISCore {
     this.executor = new CommandExecutor({
       adapter: this.adapter,
       policy: this.policy,
+      catalog: this.catalog,
+      strictCatalogVersion: options.strictCatalogVersion,
       clock: options.clock,
     });
   }
