@@ -50,6 +50,52 @@ export function levenshtein(a, b) {
 }
 
 /**
+ * Optimal string alignment distance: Levenshtein plus adjacent transposition
+ * as a single edit.
+ *
+ * Transposed letters are one of the most common typing and transcription
+ * errors in proper nouns ("Dehli" for "Delhi"), and plain Levenshtein charges
+ * two edits for them, which pushes a genuine match below any sensible
+ * similarity threshold.
+ *
+ * @param {string} a
+ * @param {string} b
+ * @returns {number}
+ */
+export function damerauLevenshtein(a, b) {
+  if (a === b) return 0;
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+
+  const la = a.length;
+  const lb = b.length;
+
+  let twoAgo = new Array(lb + 1).fill(0);
+  let oneAgo = new Array(lb + 1);
+  let current = new Array(lb + 1);
+  for (let j = 0; j <= lb; j += 1) oneAgo[j] = j;
+
+  for (let i = 1; i <= la; i += 1) {
+    current[0] = i;
+    for (let j = 1; j <= lb; j += 1) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      let value = Math.min(
+        oneAgo[j] + 1,          // deletion
+        current[j - 1] + 1,     // insertion
+        oneAgo[j - 1] + cost    // substitution
+      );
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+        value = Math.min(value, twoAgo[j - 2] + 1); // transposition
+      }
+      current[j] = value;
+    }
+    [twoAgo, oneAgo, current] = [oneAgo, current, twoAgo];
+  }
+
+  return oneAgo[lb];
+}
+
+/**
  * Find the best fuzzy match from a list of candidates.
  *
  * @param {string} input         - The input string to match

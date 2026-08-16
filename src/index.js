@@ -19,14 +19,31 @@ export {
   PERMISSION,
   SpatialCatalog,
   CommandPolicy,
+  CommandPlanValidator,
+  validateCommandPlan,
   SpatialCommandCompiler,
   splitSpatialCommand,
   CommandExecutor,
   createFunctionAdapter,
+  PlaceIndex,
+  createPlaceResolver,
   VoiceGISCore,
   createVoiceGISCore,
 } from './core/index.js';
 export * from './core/types.js';
+
+// Real execution adapters for GeoJSON and OGC API - Features
+export {
+  AdapterEvaluationError,
+  GeoJSONAdapter,
+  createGeoJSONAdapter,
+  OgcApiFeaturesAdapter,
+  createOgcApiFeaturesAdapter,
+  composeAdapters,
+  predicateToCql2,
+  evaluatePredicate,
+  serializeFeatures,
+} from './adapters/index.js';
 
 // Voice recognition engines
 export {

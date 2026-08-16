@@ -12,4 +12,9 @@ export { CommandPlanValidator, validateCommandPlan } from './CommandPlanValidato
 export { SpatialCommandCompiler, splitSpatialCommand } from './SpatialCommandCompiler.js';
 export { CommandExecutor } from './CommandExecutor.js';
 export { createFunctionAdapter } from './createFunctionAdapter.js';
+export {
+  PLACE_NAVIGATION_PATTERNS,
+  PlaceIndex,
+  createPlaceResolver,
+} from './createPlaceResolver.js';
 export { VoiceGISCore, createVoiceGISCore } from './VoiceGISCore.js';

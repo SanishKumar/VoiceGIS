@@ -43,3 +43,41 @@ jobs:
 
     - name: Build production demo
       run: npm run build:demo
+
+  e2e:
+    name: End-to-end (Playwright)
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x, 22.x]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    # The local config drives the installed Chrome to avoid a browser
+    # download; CI has no system Chrome, so fetch Playwright's own build.
+    - name: Install Playwright Chromium
+      run: npx playwright install --with-deps chromium
+
+    - name: Run end-to-end suite
+      run: npx playwright test
+      env:
+        PLAYWRIGHT_BROWSER: chromium
+
+    - name: Upload failure artifacts
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: playwright-artifacts-node${{ matrix.node-version }}
+        path: e2e/.artifacts/
+        retention-days: 7

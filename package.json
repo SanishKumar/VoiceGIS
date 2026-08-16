@@ -1,6 +1,6 @@
 {
   "name": "voicegis",
-  "version": "2.1.0-beta.1",
+  "version": "2.2.0-beta.0",
   "description": "Policy-aware natural-language GIS command compiler and execution toolkit",
   "main": "dist/voicegis.umd.cjs",
   "module": "dist/voicegis.es.js",
@@ -16,6 +16,11 @@
       "types": "./dist/types/core/index.d.ts",
       "import": "./dist/core/index.js",
       "require": "./dist/core/index.cjs"
+    },
+    "./adapters": {
+      "types": "./dist/types/adapters/index.d.ts",
+      "import": "./dist/adapters/index.js",
+      "require": "./dist/adapters/index.cjs"
     },
     "./engines": {
       "types": "./dist/types/engines/index.d.ts",
@@ -48,6 +53,7 @@
   "files": [
     "dist/*.js",
     "dist/*.cjs",
+    "dist/adapters",
     "dist/audio",
     "dist/core",
     "dist/engines",
@@ -55,6 +61,7 @@
     "dist/map",
     "dist/parser",
     "dist/types",
+    "docs/adapters.md",
     "docs/api.md",
     "docs/core.md",
     "examples/package-command-core.js",
@@ -70,13 +77,22 @@
     "preview": "vite preview",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
     "evaluate": "node scripts/evaluate.js",
-    "lint": "eslint src/ demo/ scripts/ sites/",
+    "lint": "eslint src/ demo/ scripts/ sites/ e2e/",
     "validate:package": "node scripts/validate-package.js",
-    "prepublishOnly": "npm test -- --runInBand && npm run lint && npm run build && npm run validate:package"
+    "prepublishOnly": "npm test -- --runInBand && npm run lint && npm run build && npm run validate:package",
+    "test:e2e": "playwright test",
+    "test:all": "npm test -- --runInBand && npm run test:e2e",
+    "test:live-ogc": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js adapterOgcLive"
   },
   "jest": {
     "testEnvironment": "node",
-    "transform": {}
+    "transform": {},
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/e2e/",
+      "/dist/",
+      "/dist-demo/"
+    ]
   },
   "keywords": [
     "voicegis",
@@ -144,12 +160,13 @@
   },
   "devDependencies": {
     "@huggingface/transformers": "^4.2.0",
+    "@playwright/test": "^1.62.1",
     "@tensorflow-models/speech-commands": "^0.5.4",
     "@tensorflow/tfjs": "^4.17.0",
     "@tensorflow/tfjs-backend-webgl": "^4.17.0",
-    "@vercel/analytics": "^2.0.1",
     "@types/leaflet": "^1.9.21",
     "@types/ol": "^6.5.3",
+    "@vercel/analytics": "^2.0.1",
     "eslint": "^8.57.0",
     "jest": "^29.7.0",
     "leaflet": "^1.9.0",

@@ -57,6 +57,37 @@ if (plan.status !== 'ready' || plan.operations[0]?.type !== esm.OPERATION.VIEW_Z
   fail('built core could not compile a basic command');
 }
 
+const adaptersEsm = await import(pathToFileURL(resolve(root, 'dist/adapters/index.js')).href);
+const adaptersCjs = require(resolve(root, 'dist/adapters/index.cjs'));
+
+for (const [format, api] of [['ESM', adaptersEsm], ['CommonJS', adaptersCjs]]) {
+  for (const name of ['createGeoJSONAdapter', 'createOgcApiFeaturesAdapter', 'predicateToCql2']) {
+    if (typeof api[name] !== 'function') {
+      fail(`${format} adapters does not export ${name}`);
+    }
+  }
+}
+
+const adapter = adaptersEsm.createGeoJSONAdapter({
+  layers: {
+    sites: {
+      type: 'FeatureCollection',
+      features: [
+        { type: 'Feature', id: 'a', properties: { score: 9 }, geometry: { type: 'Point', coordinates: [0, 0] } },
+        { type: 'Feature', id: 'b', properties: { score: 1 }, geometry: { type: 'Point', coordinates: [1, 1] } },
+      ],
+    },
+  },
+});
+const filtered = await adapter.execute({
+  type: esm.OPERATION.QUERY_FILTER,
+  target: { kind: 'layer', layerId: 'sites' },
+  args: { predicate: { type: 'comparison', field: 'score', operator: 'gt', value: 5 } },
+});
+if (filtered.matched !== 1 || filtered.total !== 2) {
+  fail('built GeoJSON adapter did not evaluate a predicate correctly');
+}
+
 console.log(
   `Package validation passed: ${Object.keys(packageJson.exports).length} exports, ` +
   'ESM + CommonJS + declarations, zero runtime dependencies.'
