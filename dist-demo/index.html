@@ -3,278 +3,181 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#070a0c">
-  <meta name="description" content="VoiceGIS Atlas is an interactive SDK simulation for policy-aware natural-language GIS commands.">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="Type or speak a request and watch VoiceGIS compile it into a typed, permission-checked plan, then run it against live USGS earthquake data.">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="VoiceGIS Atlas — Spatial Intelligence by Voice">
-  <meta property="og:description" content="An interactive VoiceGIS SDK simulation with hybrid speech AI, inspectable intent compilation, and dual GIS adapters.">
+  <meta property="og:title" content="VoiceGIS — natural language to verified GIS operations">
+  <meta property="og:description" content="A spoken request becomes a typed plan, checked against a catalog and a permission policy before anything runs. Live USGS earthquake data.">
   <meta property="og:image" content="https://voicemap-three.vercel.app/og.png">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="VoiceGIS Atlas — Spatial Intelligence by Voice">
-  <meta name="twitter:description" content="Hybrid speech AI. Inspectable command graphs. Leaflet and OpenLayers. Offline-first.">
+  <meta name="twitter:title" content="VoiceGIS — natural language to verified GIS operations">
+  <meta name="twitter:description" content="Compile, inspect, then execute. Live USGS earthquake data.">
   <meta name="twitter:image" content="https://voicemap-three.vercel.app/og.png">
-  <title>VoiceGIS Atlas — Spatial Intelligence by Voice</title>
+  <title>VoiceGIS — natural language to verified GIS operations</title>
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v9.2.4/ol.css">
-  <script type="module" crossorigin src="./assets/index-CWh2tpwM.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-C68IY9aT.css">
+  <script type="module" crossorigin src="./assets/index-D05kICho.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-CYbn7vpf.css">
 </head>
 <body>
-  <div id="boot-screen" class="boot-screen" aria-hidden="true">
-    <div class="boot-mark"><span></span><span></span><i></i></div>
-    <p>VOICEGIS / ATLAS</p>
-    <div class="boot-progress"><i></i></div>
-    <small>INITIALIZING SPATIAL RUNTIME</small>
-  </div>
-
-  <div id="offline-banner" class="offline-banner" role="status">
-    Offline field mode active. Cached basemap and local intent parsing remain available.
-  </div>
-
-  <div id="app" class="app-shell">
+  <div class="app">
     <header class="topbar">
-      <a class="brand" href="https://github.com/SanishKumar/VoiceGIS" target="_blank" rel="noreferrer" aria-label="VoiceGIS GitHub repository">
-        <span class="brand-mark"><span></span><i></i></span>
-        <span class="brand-copy">
-          <strong>VOICEGIS</strong>
-          <small>ATLAS / COMMAND OS</small>
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-text">
+          <strong>VoiceGIS</strong>
+          <small>natural language → verified GIS operations</small>
         </span>
-      </a>
-
-      <div class="system-strip" aria-label="System status">
-        <div class="system-item">
-          <span id="network-dot" class="signal-dot live"></span>
-          <span><small>NETWORK</small><strong id="network-label">ONLINE</strong></span>
-        </div>
-        <div class="system-item">
-          <span class="signal-dot live"></span>
-          <span><small>PARSER</small><strong>93.7% VERIFIED</strong></span>
-        </div>
-        <div class="system-item hide-compact">
-          <span id="engine-dot" class="signal-dot ready"></span>
-          <span><small>VOICE ROUTER</small><strong id="engine-label">STANDBY</strong></span>
-        </div>
       </div>
 
-      <nav class="top-actions" aria-label="Project links">
-        <button id="tour-button" class="text-button" type="button">RUN TOUR</button>
-        <button id="telemetry-button" class="text-button" type="button">TELEMETRY</button>
-        <a class="text-button" href="https://www.npmjs.com/package/voicegis" target="_blank" rel="noreferrer">NPM PACKAGE</a>
-        <a class="primary-link" href="https://github.com/SanishKumar/VoiceGIS" target="_blank" rel="noreferrer">VIEW SOURCE <span>↗</span></a>
+      <div class="source" id="source-chip">
+        <span class="dot" id="source-dot" aria-hidden="true"></span>
+        <span class="source-text">
+          <strong id="source-label">Loading live data…</strong>
+          <small id="source-detail">USGS earthquakes · magnitude 2.5+ · past 30 days</small>
+        </span>
+      </div>
+
+      <nav class="links" aria-label="Project links">
+        <a href="https://github.com/SanishKumar/VoiceGIS" target="_blank" rel="noreferrer">GitHub</a>
+        <a href="https://www.npmjs.com/package/voicegis" target="_blank" rel="noreferrer">npm</a>
       </nav>
     </header>
 
     <main class="workspace">
-      <aside id="mission-panel" class="side-panel mission-panel">
-        <div class="panel-heading">
-          <span class="eyebrow">01 / OPERATIONS</span>
-          <button class="mobile-close" data-close-panel="mission-panel" type="button" aria-label="Close operations panel">×</button>
-        </div>
+      <section class="map-panel" aria-label="Map">
+        <div id="map"></div>
 
-        <section class="mission-section">
-          <div class="section-title">
-            <div>
-              <small>ACTIVE MISSION</small>
-              <h1 id="mission-title">Monsoon Sentinel</h1>
-            </div>
-            <span id="mission-state" class="status-tag critical">CRITICAL</span>
+        <div class="map-overlay map-stats">
+          <div class="stat">
+            <small>Shown</small>
+            <strong id="stat-shown">—</strong>
+            <span id="stat-shown-note">loading</span>
           </div>
-          <p id="mission-summary" class="mission-summary">Simulated flood-response coordination across the Rishikesh corridor with priority zones and field assets.</p>
-
-          <div id="scenario-list" class="scenario-list" role="tablist" aria-label="Mission scenarios">
-            <button class="scenario-card active" data-scenario="monsoon" type="button" role="tab" aria-selected="true">
-              <span class="scenario-index">A1</span>
-              <span><strong>Monsoon Sentinel</strong><small>Uttarakhand / flood response</small></span>
-              <i>86</i>
-            </button>
-            <button class="scenario-card" data-scenario="wildfire" type="button" role="tab" aria-selected="false">
-              <span class="scenario-index">B7</span>
-              <span><strong>Wildfire Atlas</strong><small>California / containment</small></span>
-              <i>72</i>
-            </button>
-            <button class="scenario-card" data-scenario="urban" type="button" role="tab" aria-selected="false">
-              <span class="scenario-index">C4</span>
-              <span><strong>Urban Pulse</strong><small>Mumbai / mobility network</small></span>
-              <i>41</i>
-            </button>
-          </div>
-        </section>
-
-        <section class="control-section">
-          <div class="section-label"><span>DATA LAYERS</span><small id="layer-count">5 ACTIVE</small></div>
-          <div class="layer-stack">
-            <label class="layer-row">
-              <span class="layer-symbol basemap-symbol"></span>
-              <span><strong>Dark operations</strong><small>Vector basemap</small></span>
-              <input type="radio" name="basemap" value="dark" checked>
-              <i></i>
-            </label>
-            <label class="layer-row">
-              <span class="layer-symbol satellite-symbol"></span>
-              <span><strong>NASA satellite</strong><small>Global imagery</small></span>
-              <input type="radio" name="basemap" value="nasa">
-              <i></i>
-            </label>
-            <label class="layer-row">
-              <span class="layer-symbol terrain-symbol"></span>
-              <span><strong>Terrain</strong><small>OpenTopo relief</small></span>
-              <input type="radio" name="basemap" value="terrain">
-              <i></i>
-            </label>
-          </div>
-          <div class="overlay-grid">
-            <label><input type="checkbox" data-overlay="risk" checked><span>Risk field</span><i></i></label>
-            <label><input type="checkbox" data-overlay="perimeter" checked><span>Perimeters</span><i></i></label>
-            <label><input type="checkbox" data-overlay="routes" checked><span>Response routes</span><i></i></label>
-            <label><input type="checkbox" data-overlay="assets" checked><span>Field assets</span><i></i></label>
-          </div>
-        </section>
-
-        <section class="engine-section">
-          <div class="section-label"><span>VOICE ENGINE ROUTER</span><small>LAZY LOAD</small></div>
-          <select id="engine-select" class="engine-select" aria-label="Voice recognition engine">
-            <option value="auto">Auto / hybrid routing</option>
-            <option value="webspeech">Cloud / Web Speech</option>
-            <option value="whisper">Local / Whisper AI</option>
-            <option value="tfjs">Edge / TF.js command mode</option>
-            <option value="server">Private / Whisper server</option>
-          </select>
-          <div class="engine-route" aria-hidden="true">
-            <span class="route-node active">INPUT</span><i></i>
-            <span class="route-node">ROUTER</span><i></i>
-            <span class="route-node accent">INTENT</span>
-          </div>
-          <p id="engine-detail">Selects the lowest-latency available engine and falls back without losing the command session.</p>
-        </section>
-      </aside>
-
-      <section class="map-stage" aria-label="Operational map">
-        <div id="leaflet-map" class="map-container active"></div>
-        <div id="ol-map" class="map-container"></div>
-        <div class="map-vignette"></div>
-        <div class="map-grid"></div>
-        <div class="scan-line"></div>
-
-        <div class="map-head">
-          <div class="map-context">
-            <span id="mission-code">MISSION A1</span>
-            <h2 id="map-title">RISHIKESH RESPONSE CORRIDOR</h2>
-            <small id="map-subtitle">30.0869° N / 78.2676° E / SIMULATED OPERATIONAL DATA</small>
-          </div>
-          <div class="map-kpis">
-            <div><small>FIELD ASSETS</small><strong id="asset-count">14</strong></div>
-            <div><small>PRIORITY ZONES</small><strong id="zone-count">03</strong></div>
-            <div><small>COVERAGE</small><strong id="coverage-value">86%</strong></div>
+          <div class="stat-divider" aria-hidden="true"></div>
+          <div class="stat">
+            <small>Selected</small>
+            <strong id="stat-selected">0</strong>
+            <span id="stat-selected-note">no selection</span>
           </div>
         </div>
 
-        <div class="map-controls" aria-label="Map controls">
-          <button id="zoom-in" type="button" aria-label="Zoom in">+</button>
-          <button id="zoom-out" type="button" aria-label="Zoom out">−</button>
-          <button id="reset-view" type="button" aria-label="Reset mission view">⌂</button>
-          <button id="locate-me" type="button" aria-label="Locate me">◎</button>
+        <div class="map-overlay map-legend" aria-label="Legend">
+          <span><i class="swatch base"></i>Earthquake</span>
+          <span><i class="swatch match"></i>Matches filter</span>
+          <span><i class="swatch selected"></i>Selected</span>
+          <span><i class="swatch city"></i>City</span>
         </div>
 
-        <div class="map-scale">
-          <span id="map-coordinates">30.0869, 78.2676</span>
-          <i></i>
-          <span id="map-zoom">Z10</span>
-          <i></i>
-          <span id="map-engine">LEAFLET</span>
-        </div>
-
-        <div id="command-deck" class="command-deck">
-          <div class="command-topline">
-            <span class="command-mode"><i></i> NATURAL LANGUAGE COMMAND BUS</span>
-            <span id="command-state">READY FOR INPUT</span>
-          </div>
-          <form id="command-form" class="command-form">
-            <span class="prompt-mark">›</span>
-            <label class="sr-only" for="command-input">Enter a map command</label>
-            <input id="command-input" type="text" autocomplete="off" spellcheck="false" placeholder='Try “zoom to Delhi and show satellite”'>
-            <canvas id="waveform-canvas" width="180" height="34" aria-hidden="true"></canvas>
-            <button id="voice-button" class="voice-button" type="button" aria-label="Start voice recognition"><span></span><i></i></button>
-            <button class="execute-button" type="submit">EXECUTE <span>↵</span></button>
-          </form>
-          <div id="command-suggestions" class="command-suggestions" aria-label="Suggested commands"></div>
-        </div>
+        <div class="toasts" id="toasts" aria-live="polite"></div>
       </section>
 
-      <aside id="intel-panel" class="side-panel intel-panel">
-        <div class="panel-heading">
-          <span class="eyebrow">02 / INTENT COMPILER</span>
-          <button class="mobile-close" data-close-panel="intel-panel" type="button" aria-label="Close intent panel">×</button>
-          <span id="compiler-latency" class="compiler-latency">0.0 MS</span>
+      <aside class="side" aria-label="Command detail">
+        <div class="side-fixed">
+          <section class="strip" aria-label="Pipeline">
+            <div class="strip-head">
+              <h2>Pipeline</h2>
+              <span class="strip-note" id="pipeline-note">waiting for a request</span>
+            </div>
+            <ol class="pipeline" id="pipeline">
+              <li data-stage="compile" data-state="pending">
+                <span class="pl-dot" aria-hidden="true"></span>
+                <span class="pl-name">Compile</span>
+              </li>
+              <li data-stage="ground" data-state="pending">
+                <span class="pl-dot" aria-hidden="true"></span>
+                <span class="pl-name">Ground</span>
+              </li>
+              <li data-stage="authorize" data-state="pending">
+                <span class="pl-dot" aria-hidden="true"></span>
+                <span class="pl-name">Authorize</span>
+              </li>
+              <li data-stage="execute" data-state="pending">
+                <span class="pl-dot" aria-hidden="true"></span>
+                <span class="pl-name">Execute</span>
+              </li>
+            </ol>
+          </section>
+
+          <section class="strip" aria-label="Permissions">
+            <div class="strip-head">
+              <h2>Permissions</h2>
+              <span class="strip-note">switch one off to see a command blocked</span>
+            </div>
+            <div class="permissions" id="permissions"></div>
+          </section>
+
+          <div class="tabs" role="tablist" aria-label="Detail">
+            <button type="button" class="tab" id="tab-plan" role="tab"
+                    aria-controls="panel-plan" aria-selected="true">Plan</button>
+            <button type="button" class="tab" id="tab-catalog" role="tab"
+                    aria-controls="panel-catalog" aria-selected="false" tabindex="-1">Catalog</button>
+            <span class="pill" id="plan-status" data-state="idle">idle</span>
+          </div>
         </div>
 
-        <section class="compiler-section">
-          <div id="pipeline" class="pipeline">
-            <div class="pipeline-step idle" data-stage="capture"><i>01</i><span><strong>Capture</strong><small>Awaiting transcript</small></span><em>—</em></div>
-            <div class="pipeline-step idle" data-stage="segment"><i>02</i><span><strong>Chain segmentation</strong><small>No command graph</small></span><em>—</em></div>
-            <div class="pipeline-step idle" data-stage="resolve"><i>03</i><span><strong>Intent resolution</strong><small>538-case benchmark</small></span><em>—</em></div>
-            <div class="pipeline-step idle" data-stage="execute"><i>04</i><span><strong>Spatial execution</strong><small>Map adapter idle</small></span><em>—</em></div>
-          </div>
+        <div class="side-scroll" id="side-scroll">
+          <section id="panel-plan" class="tab-panel" role="tabpanel" aria-labelledby="tab-plan">
+            <p class="empty-note" id="plan-empty">
+              Run a request below. Nothing touches the data until the whole plan
+              has been compiled and checked.
+            </p>
+            <div class="atomic-note" id="atomic-note" hidden></div>
+            <ol class="operations" id="plan-operations"></ol>
+            <div class="issues" id="plan-issues" hidden></div>
+            <details class="raw" id="plan-raw" hidden>
+              <summary>Typed plan JSON</summary>
+              <pre><code id="plan-json"></code></pre>
+            </details>
+          </section>
 
-          <div class="compiled-card">
-            <div class="code-heading"><span>COMPILED INTENT</span><button id="copy-intent" type="button">COPY</button></div>
-            <pre id="compiled-intent"><code>{
-  "status": "standby",
-  "adapter": "leaflet",
-  "commands": []
-}</code></pre>
-          </div>
-        </section>
-
-        <section class="history-section">
-          <div class="section-label"><span>COMMAND EVIDENCE</span><button id="export-log" type="button">EXPORT JSON</button></div>
-          <ol id="command-history" class="command-history">
-            <li class="empty-history"><span>00</span><p>No commands executed.<br>Use voice or the command bus.</p></li>
-          </ol>
-        </section>
-
-        <section class="accuracy-section">
-          <div class="accuracy-ring" id="accuracy-ring" style="--accuracy: 93.7">
-            <span><strong id="session-accuracy">93.7%</strong><small>PARSER BASELINE</small></span>
-          </div>
-          <div class="accuracy-meta">
-            <p><span>SESSION COMMANDS</span><strong id="session-commands">0</strong></p>
-            <p><span>AVG LATENCY</span><strong id="average-latency">—</strong></p>
-            <p><span>UNKNOWN</span><strong id="unknown-count">0</strong></p>
-          </div>
-        </section>
+          <section id="panel-catalog" class="tab-panel" role="tabpanel"
+                   aria-labelledby="tab-catalog" hidden>
+            <p class="card-note">
+              Only these layers and fields can be named. Anything else returns
+              <code>needs_input</code> instead of a guess.
+            </p>
+            <div class="catalog" id="catalog"></div>
+            <p class="card-note places-note">
+              Navigation resolves against a bundled gazetteer — no geocoding
+              service is called.
+            </p>
+            <div class="places" id="places"></div>
+          </section>
+        </div>
       </aside>
     </main>
 
-    <div class="mobile-dock">
-      <button data-open-panel="mission-panel" type="button" aria-controls="mission-panel" aria-expanded="false">OPERATIONS</button>
-      <button id="mobile-command" type="button">COMMAND</button>
-      <button data-open-panel="intel-panel" type="button" aria-controls="intel-panel" aria-expanded="false">INTENT</button>
-    </div>
-
-    <div id="telemetry-drawer" class="telemetry-drawer" aria-hidden="true" inert>
-      <div class="telemetry-head">
-        <div><small>SYSTEM TELEMETRY</small><h2>VoiceGIS Runtime</h2></div>
-        <button id="telemetry-close" type="button" aria-label="Close telemetry">×</button>
-      </div>
-      <div class="telemetry-grid">
-        <article><span>01</span><small>ENGINE PROFILES</small><strong>5</strong><p>Cloud, local, edge, server, and automatic failover.</p></article>
-        <article><span>02</span><small>BENCHMARK CASES</small><strong>538</strong><p>Regression-tested navigation, layer, typo, and edge commands.</p></article>
-        <article><span>03</span><small>MAP ADAPTERS</small><strong>2</strong><p>Leaflet and OpenLayers behind one execution contract.</p></article>
-        <article><span>04</span><small>OFFLINE PATH</small><strong>100%</strong><p>Local city index, on-device Whisper, cache-first field shell.</p></article>
-      </div>
-      <div class="architecture-line">
-        <span>AUDIO</span><i></i><span>ENGINE ROUTER</span><i></i><span>COMMAND GRAPH</span><i></i><span>GIS ADAPTER</span>
+    <div class="console">
+      <form class="command" id="command-form" autocomplete="off">
+        <span class="prompt" aria-hidden="true">›</span>
+        <label class="sr-only" for="command-input">Enter a request</label>
+        <input
+          id="command-input"
+          type="text"
+          spellcheck="false"
+          placeholder="show earthquakes where magnitude is greater than 5">
+        <button type="button" id="mic-button" class="mic" hidden aria-label="Speak a request">
+          <span class="mic-icon" aria-hidden="true"></span>
+        </button>
+        <button type="submit" class="run" id="run-button">Run</button>
+      </form>
+      <div class="chips-row">
+        <span class="chips-label">Try</span>
+        <div class="chips" id="chips"></div>
       </div>
     </div>
-    <div id="drawer-backdrop" class="drawer-backdrop"></div>
-    <div id="toast-region" class="toast-region" aria-live="polite"></div>
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/ol@v9.2.4/dist/ol.js"></script>
+  <dialog id="confirm-dialog" class="confirm">
+    <div class="confirm-inner">
+      <h2 id="confirm-title">Confirm this operation</h2>
+      <p id="confirm-body"></p>
+      <div class="confirm-actions">
+        <button type="button" id="confirm-cancel" class="ghost">Cancel</button>
+        <button type="button" id="confirm-accept" class="run" autofocus>Run it</button>
+      </div>
+    </div>
+  </dialog>
+
 </body>
 </html>

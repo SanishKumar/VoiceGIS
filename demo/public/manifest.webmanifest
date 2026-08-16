@@ -1,10 +1,10 @@
 {
-  "name": "VoiceGIS Atlas",
+  "name": "VoiceGIS",
   "short_name": "VoiceGIS",
-  "description": "Voice-native spatial intelligence and incident command console.",
+  "description": "Compile natural-language requests into typed, permission-checked GIS operations against live data.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#070a0c",
-  "theme_color": "#070a0c",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "orientation": "any"
 }

@@ -3,6 +3,7 @@ import { resolve } from 'path';
 
 const entries = {
   core: resolve(__dirname, 'src/core/index.js'),
+  adapters: resolve(__dirname, 'src/adapters/index.js'),
   parser: resolve(__dirname, 'src/parser/index.js'),
   map: resolve(__dirname, 'src/map/index.js'),
   engines: resolve(__dirname, 'src/engines/index.js'),

@@ -1,10 +1,8 @@
-const CACHE_NAME = 'voicegis-atlas-v3';
+const CACHE_NAME = 'voicegis-v5';
 const APP_SHELL = ['./', './index.html', './manifest.webmanifest'];
+// Application code is same-origin now that Leaflet is bundled; the only
+// third-party requests left are basemap tiles.
 const CACHEABLE_HOSTS = [
-  'unpkg.com',
-  'cdn.jsdelivr.net',
-  'fonts.googleapis.com',
-  'fonts.gstatic.com',
   'basemaps.cartocdn.com',
 ];
 

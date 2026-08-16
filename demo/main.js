@@ -1,1262 +1,1140 @@
-import { inject } from '@vercel/analytics';
-import { SpeechEngine, ENGINE_TYPE, WHISPER_STATE } from '../src/engines/index.js';
-import { parseCommand, splitCommandString, INTENT } from '../src/parser/index.js';
-import { MapController, MAP_ENGINE } from '../src/map/index.js';
-import { EvaluationTracker } from '../src/evaluation/index.js';
-import { CommandHistory } from '../src/history/index.js';
+/**
+ * VoiceGIS demo.
+ *
+ * Live USGS earthquake data, compiled from natural language into a typed,
+ * policy-checked plan, then executed by the GeoJSON adapter. Nothing here is
+ * simulated: the counts on screen come from evaluating the compiled predicate
+ * against the features the map is drawing.
+ *
+ * Rendering rule for this file: every string that can contain user input —
+ * issue messages, operation descriptions, predicate values, adapter errors —
+ * reaches the page through `textContent`, never through markup. A command is
+ * data, not a template.
+ */
 
-if (window.location.hostname.endsWith('.vercel.app')) {
-  inject();
+import { inject } from '@vercel/analytics';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import {
+  OPERATION,
+  PERMISSION,
+  PLAN_STATUS,
+  createFunctionAdapter,
+  createPlaceResolver,
+  createVoiceGISCore,
+} from '../src/core/index.js';
+import { composeAdapters, createGeoJSONAdapter } from '../src/adapters/index.js';
+import { WebSpeechEngine } from '../src/engines/WebSpeechEngine.js';
+import { CATALOG, EXAMPLES } from './catalog.js';
+import CITIES from './data/cities.json';
+import GAZETTEER from './data/places.json';
+import FALLBACK_QUAKES from './data/earthquakes-fallback.json';
+
+if (window.location.hostname.endsWith('.vercel.app')) inject();
+
+const USGS_FEED =
+  'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_month.geojson';
+
+const $ = (id) => document.getElementById(id);
+
+const PERMISSION_LABELS = [
+  [PERMISSION.VIEW, 'view'],
+  [PERMISSION.QUERY, 'query'],
+  [PERMISSION.ANALYSIS, 'analysis'],
+  [PERMISSION.EXPORT, 'export'],
+];
+
+const OPERATION_TITLES = {
+  [OPERATION.LAYER_VISIBILITY]: 'Layer visibility',
+  [OPERATION.QUERY_FILTER]: 'Filter features',
+  [OPERATION.QUERY_SELECT]: 'Select features',
+  [OPERATION.QUERY_SPATIAL_SELECT]: 'Select by proximity',
+  [OPERATION.QUERY_COUNT]: 'Count features',
+  [OPERATION.QUERY_CLEAR]: 'Clear filters',
+  [OPERATION.SELECTION_CLEAR]: 'Clear selection',
+  [OPERATION.ANALYSIS_BUFFER]: 'Buffer',
+  [OPERATION.DATA_EXPORT]: 'Export',
+  [OPERATION.VIEW_ZOOM]: 'Zoom',
+  [OPERATION.VIEW_PAN]: 'Pan',
+  [OPERATION.VIEW_SET]: 'Move view',
+  [OPERATION.VIEW_RESET]: 'Reset view',
+};
+
+const OPERATOR_TEXT = {
+  eq: '=',
+  neq: '≠',
+  gt: '>',
+  gte: '≥',
+  lt: '<',
+  lte: '≤',
+  contains: 'contains',
+  not_contains: 'does not contain',
+  starts_with: 'starts with',
+};
+
+// A pale basemap washes out low-contrast marks, so every state carries a
+// stroke and enough fill to read as data rather than as map texture.
+const MARKER_STYLES = {
+  base: { color: '#475569', fillColor: '#94a3b8', weight: 0.9, opacity: 0.85, fillOpacity: 0.5 },
+  match: { color: '#9a3412', fillColor: '#f97316', weight: 1.2, opacity: 1, fillOpacity: 0.72 },
+  selected: { color: '#0f766e', fillColor: '#14b8a6', weight: 1.6, opacity: 1, fillOpacity: 0.85 },
+  dimmed: { color: '#cbd5e1', fillColor: '#e2e8f0', weight: 0.5, opacity: 0.5, fillOpacity: 0.2 },
+};
+
+const STAGES = ['compile', 'ground', 'authorize', 'execute'];
+
+/**
+ * Which pipeline stage an issue belongs to.
+ *
+ * The stage is a claim about *where* a request stopped, so it has to follow
+ * the issue code rather than a guess: a word the compiler could not parse is
+ * not the same failure as a field that is missing from the catalog, and
+ * neither is the same as a permission the user does not hold.
+ */
+const STAGE_BY_ISSUE_CODE = {
+  // Compile: the text could not be turned into an operation at all.
+  unknown_command: 'compile',
+  invalid_predicate: 'compile',
+  empty_command: 'compile',
+  // Ground: it parsed, but it names something the catalog does not contain.
+  unknown_layer: 'ground',
+  unknown_field: 'ground',
+  unknown_place: 'ground',
+  catalog_capability_missing: 'ground',
+  catalog_layer_unknown: 'ground',
+  catalog_field_unknown: 'ground',
+  catalog_version_mismatch: 'ground',
+  // Authorize: it is a real operation on real data, but not permitted.
+  policy_denied: 'authorize',
+};
+
+/* ------------------------------------------------------------------ state */
+
+const state = {
+  map: null,
+  quakeLayer: null,
+  cityLayer: null,
+  bufferLayer: null,
+  markers: new Map(),
+  cityMarkers: new Map(),
+  permissions: new Set([PERMISSION.VIEW, PERMISSION.QUERY, PERMISSION.ANALYSIS, PERMISSION.EXPORT]),
+  data: null,
+  core: null,
+  speech: null,
+  busy: false,
+};
+
+/* --------------------------------------------------------- DOM primitives */
+
+/**
+ * Create an element, assigning any text through `textContent`.
+ *
+ * @param {string} tag
+ * @param {string} [className]
+ * @param {string} [text]
+ * @returns {HTMLElement}
+ */
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined && text !== null) node.textContent = String(text);
+  return node;
 }
 
-const SCENARIOS = {
-  monsoon: {
-    key: 'monsoon',
-    code: 'A1',
-    title: 'Monsoon Sentinel',
-    mapTitle: 'RISHIKESH RESPONSE CORRIDOR',
-    summary: 'Simulated flood-response coordination across the Rishikesh corridor with priority zones and field assets.',
-    state: 'CRITICAL',
-    stateClass: 'critical',
-    center: [30.0869, 78.2676],
-    zoom: 10,
-    coverage: 86,
-    zones: [
-      {
-        name: 'Ganga overflow sector',
-        severity: 'critical',
-        coords: [[30.124, 78.285], [30.118, 78.338], [30.078, 78.356], [30.051, 78.315], [30.067, 78.276]],
-      },
-      {
-        name: 'Narendra Nagar slope watch',
-        severity: 'elevated',
-        coords: [[30.178, 78.161], [30.195, 78.214], [30.151, 78.241], [30.126, 78.195]],
-      },
-      {
-        name: 'Haridwar logistics buffer',
-        severity: 'monitor',
-        coords: [[29.994, 78.112], [30.024, 78.153], [29.976, 78.201], [29.944, 78.158]],
-      },
-    ],
-    risk: [
-      { coords: [30.092, 78.304], radius: 4200, intensity: 0.92 },
-      { coords: [30.164, 78.197], radius: 3300, intensity: 0.74 },
-      { coords: [29.982, 78.158], radius: 3800, intensity: 0.56 },
-      { coords: [30.046, 78.266], radius: 2500, intensity: 0.66 },
-    ],
-    routes: [
-      { name: 'Medical corridor M-4', coords: [[29.966, 78.169], [30.006, 78.203], [30.051, 78.244], [30.093, 78.276], [30.128, 78.315]] },
-      { name: 'High-ground evacuation E-2', coords: [[30.073, 78.315], [30.104, 78.265], [30.137, 78.222], [30.177, 78.191]] },
-    ],
-    assets: [
-      { name: 'ALPHA-12', type: 'Rescue team', status: 'deployed', coords: [30.105, 78.298], alert: true },
-      { name: 'MED-07', type: 'Field medical', status: 'ready', coords: [30.041, 78.229] },
-      { name: 'UAV-03', type: 'Aerial survey', status: 'airborne', coords: [30.153, 78.236] },
-      { name: 'LOG-21', type: 'Supply convoy', status: 'en route', coords: [29.974, 78.179] },
-      { name: 'BRAVO-06', type: 'Rescue team', status: 'deployed', coords: [30.081, 78.341], alert: true },
-    ],
-    assetTotal: 14,
-    suggestions: [
-      'focus critical zone',
-      'show satellite',
-      'zoom in and add marker',
-      'hide risk field',
-    ],
-  },
-  wildfire: {
-    key: 'wildfire',
-    code: 'B7',
-    title: 'Wildfire Atlas',
-    mapTitle: 'DIABLO RANGE FIRE COMMAND',
-    summary: 'Containment planning, crew routing, and aerial intelligence for a fast-moving interface fire.',
-    state: 'ELEVATED',
-    stateClass: 'elevated',
-    center: [37.3541, -121.7084],
-    zoom: 10,
-    coverage: 72,
-    zones: [
-      {
-        name: 'Eastern active front',
-        severity: 'critical',
-        coords: [[37.426, -121.684], [37.397, -121.593], [37.318, -121.624], [37.294, -121.713], [37.361, -121.746]],
-      },
-      {
-        name: 'Interface protection zone',
-        severity: 'elevated',
-        coords: [[37.382, -121.842], [37.347, -121.775], [37.292, -121.799], [37.315, -121.883]],
-      },
-      {
-        name: 'Aerial operations sector',
-        severity: 'monitor',
-        coords: [[37.476, -121.781], [37.442, -121.684], [37.392, -121.722], [37.413, -121.824]],
-      },
-    ],
-    risk: [
-      { coords: [37.367, -121.668], radius: 6100, intensity: 0.94 },
-      { coords: [37.329, -121.704], radius: 4400, intensity: 0.8 },
-      { coords: [37.342, -121.824], radius: 3600, intensity: 0.55 },
-      { coords: [37.421, -121.716], radius: 3000, intensity: 0.62 },
-    ],
-    routes: [
-      { name: 'Crew ingress F-9', coords: [[37.279, -121.889], [37.307, -121.827], [37.337, -121.758], [37.365, -121.681]] },
-      { name: 'Tanker turnaround T-2', coords: [[37.445, -121.821], [37.413, -121.758], [37.387, -121.703], [37.351, -121.635]] },
-    ],
-    assets: [
-      { name: 'HOTSHOT-4', type: 'Ground crew', status: 'line construction', coords: [37.354, -121.681], alert: true },
-      { name: 'TANKER-9', type: 'Air tanker', status: 'drop run', coords: [37.421, -121.723] },
-      { name: 'DOZER-2', type: 'Heavy equipment', status: 'deployed', coords: [37.318, -121.759] },
-      { name: 'ENGINE-31', type: 'Structure protection', status: 'ready', coords: [37.337, -121.842] },
-      { name: 'UAS-11', type: 'Thermal survey', status: 'airborne', coords: [37.387, -121.638], alert: true },
-    ],
-    assetTotal: 19,
-    suggestions: [
-      'focus critical zone',
-      'show terrain',
-      'pan east and zoom in',
-      'hide response routes',
-    ],
-  },
-  urban: {
-    key: 'urban',
-    code: 'C4',
-    title: 'Urban Pulse',
-    mapTitle: 'MUMBAI MOBILITY NETWORK',
-    summary: 'Simulated multimodal flow analysis across rail, emergency corridors, and high-density demand clusters.',
-    state: 'MONITOR',
-    stateClass: 'monitor',
-    center: [19.076, 72.8777],
-    zoom: 11,
-    coverage: 94,
-    zones: [
-      {
-        name: 'Central demand cluster',
-        severity: 'elevated',
-        coords: [[19.104, 72.842], [19.112, 72.903], [19.061, 72.916], [19.044, 72.865]],
-      },
-      {
-        name: 'Harbour transfer sector',
-        severity: 'monitor',
-        coords: [[19.049, 72.921], [19.079, 72.973], [19.025, 72.993], [18.997, 72.943]],
-      },
-      {
-        name: 'Airport priority envelope',
-        severity: 'monitor',
-        coords: [[19.139, 72.849], [19.137, 72.893], [19.092, 72.896], [19.091, 72.854]],
-      },
-    ],
-    risk: [
-      { coords: [19.073, 72.881], radius: 3100, intensity: 0.76 },
-      { coords: [19.118, 72.873], radius: 2500, intensity: 0.62 },
-      { coords: [19.031, 72.951], radius: 2700, intensity: 0.54 },
-      { coords: [18.993, 72.838], radius: 2200, intensity: 0.43 },
-    ],
-    routes: [
-      { name: 'Emergency green corridor', coords: [[18.942, 72.829], [18.991, 72.836], [19.044, 72.852], [19.094, 72.874], [19.131, 72.892]] },
-      { name: 'Harbour relief route', coords: [[18.963, 72.931], [19.008, 72.948], [19.053, 72.962], [19.092, 72.941]] },
-    ],
-    assets: [
-      { name: 'TRANSIT-08', type: 'Mobility unit', status: 'active', coords: [19.069, 72.878] },
-      { name: 'MED-14', type: 'Emergency response', status: 'priority', coords: [19.112, 72.884], alert: true },
-      { name: 'FLOW-22', type: 'Traffic sensor', status: 'streaming', coords: [19.025, 72.918] },
-      { name: 'RAIL-05', type: 'Transit control', status: 'active', coords: [18.993, 72.843] },
-      { name: 'PORT-03', type: 'Harbour unit', status: 'active', coords: [19.047, 72.956] },
-    ],
-    assetTotal: 27,
-    suggestions: [
-      'show satellite',
-      'pan south and zoom in',
-      'hide perimeters',
-      'go to Pune',
-    ],
-  },
-};
+/** Replace an element's children with newly built nodes. */
+function replaceChildren(node, ...children) {
+  node.replaceChildren(...children.filter(Boolean));
+  return node;
+}
 
-const dom = {
-  app: document.getElementById('app'),
-  bootScreen: document.getElementById('boot-screen'),
-  offlineBanner: document.getElementById('offline-banner'),
-  networkDot: document.getElementById('network-dot'),
-  networkLabel: document.getElementById('network-label'),
-  engineDot: document.getElementById('engine-dot'),
-  engineLabel: document.getElementById('engine-label'),
-  engineSelect: document.getElementById('engine-select'),
-  engineDetail: document.getElementById('engine-detail'),
-  missionTitle: document.getElementById('mission-title'),
-  missionState: document.getElementById('mission-state'),
-  missionSummary: document.getElementById('mission-summary'),
-  missionCode: document.getElementById('mission-code'),
-  mapTitle: document.getElementById('map-title'),
-  mapSubtitle: document.getElementById('map-subtitle'),
-  assetCount: document.getElementById('asset-count'),
-  zoneCount: document.getElementById('zone-count'),
-  coverageValue: document.getElementById('coverage-value'),
-  layerCount: document.getElementById('layer-count'),
-  mapCoordinates: document.getElementById('map-coordinates'),
-  mapZoom: document.getElementById('map-zoom'),
-  mapEngine: document.getElementById('map-engine'),
-  commandForm: document.getElementById('command-form'),
-  commandInput: document.getElementById('command-input'),
-  commandState: document.getElementById('command-state'),
-  commandSuggestions: document.getElementById('command-suggestions'),
-  voiceButton: document.getElementById('voice-button'),
-  pipeline: document.getElementById('pipeline'),
-  compiledIntent: document.getElementById('compiled-intent'),
-  compilerLatency: document.getElementById('compiler-latency'),
-  commandHistory: document.getElementById('command-history'),
-  sessionAccuracy: document.getElementById('session-accuracy'),
-  sessionCommands: document.getElementById('session-commands'),
-  averageLatency: document.getElementById('average-latency'),
-  unknownCount: document.getElementById('unknown-count'),
-  accuracyRing: document.getElementById('accuracy-ring'),
-  telemetryDrawer: document.getElementById('telemetry-drawer'),
-  telemetryClose: document.getElementById('telemetry-close'),
-  drawerBackdrop: document.getElementById('drawer-backdrop'),
-  toastRegion: document.getElementById('toast-region'),
-  waveformCanvas: document.getElementById('waveform-canvas'),
-};
+/* ------------------------------------------------------------- formatting */
 
-const tracker = new EvaluationTracker();
-const cameraHistory = new CommandHistory(40);
-let currentScenario = SCENARIOS.monsoon;
-let currentMapEngine = MAP_ENGINE.LEAFLET;
-let mapController = null;
-let speechEngine = null;
-let activeSpeechType = null;
-let activeBasemap = 'dark';
-let scenarioLayers = {};
-let commandRecords = [];
-let tourRunning = false;
-let waveformFrame = null;
-let waveformListening = false;
-let activeMobileTrigger = null;
-let activeDrawerTrigger = null;
-const mobileLayout = window.matchMedia('(max-width: 980px)');
+const formatNumber = (value) => Number(value).toLocaleString('en-US');
 
-const engineDescriptions = {
-  auto: 'Selects the lowest-latency available engine and falls back without losing the command session.',
-  webspeech: 'Uses the browser speech service for low-latency, full-sentence recognition.',
-  whisper: 'Runs quantized Whisper locally in the browser. Audio never leaves the device.',
-  tfjs: 'Loads a compact keyword model for constrained, always-on field hardware.',
-  server: 'Streams WAV segments to a private Whisper-compatible endpoint inside your network.',
-};
+function layerLabel(layerId) {
+  return CATALOG.layers.find((layer) => layer.id === layerId)?.label || layerId;
+}
 
-function initMap(engine = MAP_ENGINE.LEAFLET) {
-  if (mapController) {
-    clearScenarioLayers();
-    mapController.destroy();
+function fieldLabel(layerId, fieldId) {
+  const layer = CATALOG.layers.find((candidate) => candidate.id === layerId);
+  return layer?.fields.find((field) => field.id === fieldId)?.label || fieldId;
+}
+
+/** Render a typed predicate using catalog labels, so grounding is visible. */
+function describePredicate(predicate, layerId) {
+  if (!predicate) return '';
+  if (predicate.type === 'group') {
+    const joiner = predicate.operator === 'or' ? ' OR ' : ' AND ';
+    return predicate.conditions
+      .map((condition) => {
+        const text = describePredicate(condition, layerId);
+        return condition.type === 'group' ? `(${text})` : text;
+      })
+      .join(joiner);
   }
 
-  const leafletElement = document.getElementById('leaflet-map');
-  const openLayersElement = document.getElementById('ol-map');
-  const isOpenLayers = engine === MAP_ENGINE.OPENLAYERS;
-  leafletElement.classList.toggle('active', !isOpenLayers);
-  openLayersElement.classList.toggle('active', isOpenLayers);
-
-  mapController = new MapController({
-    engine,
-    containerId: isOpenLayers ? 'ol-map' : 'leaflet-map',
-    onLayerError: ({ layerId, label }) => {
-      if (layerId !== 'dark' && activeBasemap === layerId) {
-        setBasemap('dark');
-        showToast(`${label} could not be reached. Switched to the dark operations basemap.`, 'warning');
-        return;
-      }
-      showToast(`${label} could not be reached. Check the connection or choose another basemap.`, 'warning');
-    },
-  });
-  mapController.init();
-  currentMapEngine = engine;
-  dom.mapEngine.textContent = engine.toUpperCase();
-
-  mapController.hideLayer('osm');
-  mapController.showLayer(activeBasemap);
-  mapController.onMove(updateMapReadout);
-  renderScenarioLayers();
-  requestAnimationFrame(updateMapReadout);
+  const operator = OPERATOR_TEXT[predicate.operator] || predicate.operator;
+  const value = typeof predicate.value === 'string'
+    ? `"${predicate.value}"`
+    : String(predicate.value);
+  const unit = predicate.unit ? ` ${predicate.unit}` : '';
+  return `${fieldLabel(layerId, predicate.field)} ${operator} ${value}${unit}`;
 }
 
-function clearScenarioLayers() {
-  if (!mapController?._map) {
-    scenarioLayers = {};
+function describeTarget(target) {
+  if (!target) return '';
+  if (target.kind === 'layer') return layerLabel(target.layerId);
+  if (target.kind === 'selection') return 'current selection';
+  if (target.kind === 'all_layers') return 'all layers';
+  if (target.kind === 'place') return target.name;
+  return target.kind;
+}
+
+/** The human-readable line under an operation title. */
+function describeOperation(operation) {
+  const { type, target, args = {} } = operation;
+  const layerId = target?.layerId;
+
+  switch (type) {
+    case OPERATION.LAYER_VISIBILITY:
+      return `${args.visible ? 'show' : 'hide'} ${describeTarget(target)}`;
+    case OPERATION.QUERY_FILTER:
+    case OPERATION.QUERY_SELECT:
+      return `${describeTarget(target)} where ${describePredicate(args.predicate, layerId)}`;
+    case OPERATION.QUERY_COUNT:
+      return args.predicate
+        ? `${describeTarget(target)} where ${describePredicate(args.predicate, layerId)}`
+        : describeTarget(target);
+    case OPERATION.QUERY_SPATIAL_SELECT:
+      return `${describeTarget(target)} within ${args.distance.value} ${args.distance.unit} of `
+        + `${describeTarget(args.reference) || args.reference?.value}`;
+    case OPERATION.QUERY_CLEAR:
+      return describeTarget(target);
+    case OPERATION.ANALYSIS_BUFFER:
+      return `${describeTarget(target)} by ${args.distance.value} ${args.distance.unit}`;
+    case OPERATION.DATA_EXPORT:
+      return `${describeTarget(target)} as ${args.format}`;
+    case OPERATION.VIEW_ZOOM:
+      return args.delta > 0 ? 'in' : 'out';
+    case OPERATION.VIEW_PAN:
+      return args.direction;
+    case OPERATION.VIEW_SET:
+      if (args.bounds) return `frame ${describeTarget(target)} (bounds)`;
+      if (args.center) {
+        return `centre on ${describeTarget(target)} `
+          + `(${args.center[0].toFixed(3)}, ${args.center[1].toFixed(3)})`;
+      }
+      return describeTarget(target);
+    default:
+      return describeTarget(target);
+  }
+}
+
+/** Turn an adapter return value into one readable sentence. */
+function describeResult(result) {
+  const value = result.value;
+  if (value === null || value === undefined) return 'done';
+
+  switch (result.type) {
+    case OPERATION.QUERY_FILTER:
+      return `${formatNumber(value.matched)} of ${formatNumber(value.total)} features match`;
+    case OPERATION.QUERY_SELECT:
+      return `${formatNumber(value.selected)} features selected`;
+    case OPERATION.QUERY_SPATIAL_SELECT:
+      return `${formatNumber(value.selected)} selected, measured against `
+        + `${formatNumber(value.evaluated)}${value.scope === 'filtered' ? ' filtered' : ''} features`;
+    case OPERATION.QUERY_COUNT:
+      return `${formatNumber(value.count)} features`;
+    case OPERATION.QUERY_CLEAR:
+      return `cleared on ${value.cleared.map(layerLabel).join(', ')}`;
+    case OPERATION.SELECTION_CLEAR:
+      return `${formatNumber(value.cleared)} features deselected`;
+    case OPERATION.LAYER_VISIBILITY:
+      return `${layerLabel(value.layerId)} ${value.visible ? 'shown' : 'hidden'}`;
+    case OPERATION.ANALYSIS_BUFFER:
+      return `${formatNumber(value.featureCount)} buffers at ${formatNumber(value.distance.meters)} m`;
+    case OPERATION.DATA_EXPORT:
+      return `${formatNumber(value.featureCount)} features → ${value.filename}`;
+    case OPERATION.VIEW_SET:
+      return value?.bounds ? 'framed' : 'centred';
+    default:
+      return 'done';
+  }
+}
+
+/* ------------------------------------------------------------------- data */
+
+/**
+ * USGS keeps depth in the third geometry ordinate. Promoting it to a property
+ * is the kind of normalization every host does before exposing a catalog.
+ */
+function normalizeQuakes(collection) {
+  return {
+    type: 'FeatureCollection',
+    features: collection.features.map((feature) => ({
+      ...feature,
+      properties: {
+        ...feature.properties,
+        depth_km: feature.geometry?.coordinates?.[2] ?? null,
+      },
+    })),
+  };
+}
+
+async function loadEarthquakes() {
+  try {
+    const response = await fetch(USGS_FEED, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`USGS responded ${response.status}`);
+    const body = await response.json();
+    return { data: normalizeQuakes(body), live: true, generated: body.metadata?.generated };
+  } catch (error) {
+    console.warn('[VoiceGIS demo] live feed unavailable, using bundled sample:', error.message);
+    return { data: normalizeQuakes(FALLBACK_QUAKES), live: false };
+  }
+}
+
+/* -------------------------------------------------------------------- map */
+
+const WORLD_BOUNDS = [[-70, -175], [78, 175]];
+
+function initMap() {
+  const map = L.map('map', {
+    preferCanvas: true,
+    zoomControl: true,
+    attributionControl: true,
+    maxBounds: [[-85, -180], [85, 180]],
+    maxBoundsViscosity: 1,
+    // Fractional zoom. With the default whole-number snap, the world-fit zoom
+    // rounds up a full level — doubling the scale and cropping half the
+    // Pacific out of the opening view. The +/- buttons still step by one.
+    zoomSnap: 0,
+    zoomDelta: 1,
+  });
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; '
+      + '<a href="https://carto.com/attributions">CARTO</a> · earthquakes: '
+      + '<a href="https://earthquake.usgs.gov/earthquakes/feed/">USGS</a>',
+    subdomains: 'abcd',
+    maxZoom: 19,
+    // A single world: repeated copies make a global result set look broken.
+    noWrap: true,
+  }).addTo(map);
+
+  state.bufferLayer = L.layerGroup().addTo(map);
+  state.quakeLayer = L.layerGroup().addTo(map);
+  state.cityLayer = L.layerGroup().addTo(map);
+  state.map = map;
+
+  showWholeWorld();
+
+  // A phone-width viewport cannot show the world at a zoom that suits a
+  // desktop one, so derive the floor from the viewport instead of fixing it.
+  let resizeTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      map.invalidateSize();
+      if (map.getZoom() <= map.getMinZoom()) showWholeWorld();
+      else map.setMinZoom(worldZooms().contain);
+    }, 180);
+  });
+}
+
+/**
+ * Two useful zooms for the world at the current viewport size.
+ *
+ * `contain` shows every longitude but letterboxes a portrait viewport with
+ * dead space; `cover` fills the panel and crops instead. The map opens at
+ * `cover` so it never looks broken, and the floor stays at `contain` so a
+ * phone user can still zoom out to the whole world.
+ */
+function worldZooms() {
+  state.map.setMinZoom(0);
+  return {
+    contain: state.map.getBoundsZoom(WORLD_BOUNDS, false),
+    cover: state.map.getBoundsZoom(WORLD_BOUNDS, true),
+  };
+}
+
+function showWholeWorld({ animate = false } = {}) {
+  const { contain, cover } = worldZooms();
+  state.map.setMinZoom(contain);
+  state.map.setView(L.latLngBounds(WORLD_BOUNDS).getCenter(), cover, { animate });
+}
+
+const magnitudeRadius = (mag) => Math.max(2.2, ((Number(mag) || 2.5) - 1) * 1.55);
+
+/** Popups are built as DOM: feed values are data, not markup. */
+function popupNode(title, rows) {
+  const wrapper = document.createDocumentFragment();
+  wrapper.appendChild(el('div', 'popup-title', title));
+  const grid = el('div', 'popup-grid');
+  for (const [key, value] of rows) {
+    grid.appendChild(el('span', null, key));
+    grid.appendChild(el('b', null, value));
+  }
+  wrapper.appendChild(grid);
+  const host = el('div');
+  host.appendChild(wrapper);
+  return host;
+}
+
+function quakePopup(feature) {
+  const p = feature.properties;
+  return popupNode(p.place || 'Earthquake', [
+    ['magnitude', `${p.mag} ${p.magType || ''}`.trim()],
+    ['depth', p.depth_km === null ? '—' : `${Number(p.depth_km).toFixed(1)} km`],
+    ['alert', p.alert || '—'],
+    ['significance', p.sig ?? '—'],
+    ['felt reports', p.felt ?? '—'],
+    ['time', p.time ? `${new Date(p.time).toISOString().replace('T', ' ').slice(0, 16)} UTC` : '—'],
+  ]);
+}
+
+function buildQuakeMarkers(collection) {
+  state.quakeLayer.clearLayers();
+  state.markers.clear();
+
+  for (const feature of collection.features) {
+    const [lon, lat] = feature.geometry.coordinates;
+    const marker = L.circleMarker([lat, lon], {
+      radius: magnitudeRadius(feature.properties.mag),
+      ...MARKER_STYLES.base,
+    });
+    marker.bindPopup(() => quakePopup(feature));
+    marker.addTo(state.quakeLayer);
+    state.markers.set(String(feature.id), marker);
+  }
+}
+
+function buildCityMarkers(collection) {
+  state.cityLayer.clearLayers();
+  state.cityMarkers.clear();
+
+  for (const feature of collection.features) {
+    const [lon, lat] = feature.geometry.coordinates;
+    const marker = L.circleMarker([lat, lon], {
+      radius: 3.4,
+      color: '#1c1917',
+      fillColor: '#292524',
+      weight: 1,
+      opacity: 0.9,
+      fillOpacity: 0.9,
+    });
+    marker.bindPopup(() => popupNode(feature.properties.name, [
+      ['country', feature.properties.country],
+      ['population', formatNumber(feature.properties.population)],
+    ]));
+    marker.addTo(state.cityLayer);
+    state.cityMarkers.set(String(feature.id), marker);
+  }
+}
+
+/** Repaint markers from adapter state. */
+function renderMap(adapterState) {
+  const quakes = adapterState.layers.earthquakes;
+  const cities = adapterState.layers.cities;
+  const selected = new Set(adapterState.selection.earthquakes || []);
+  const hasFilter = Boolean(quakes?.filter);
+
+  const matched = new Set(
+    hasFilter
+      ? state.data.getFeatures('earthquakes').map((feature) => String(feature.id))
+      : []
+  );
+
+  for (const [id, marker] of state.markers) {
+    let style;
+    if (selected.has(id)) style = MARKER_STYLES.selected;
+    else if (hasFilter) style = matched.has(id) ? MARKER_STYLES.match : MARKER_STYLES.dimmed;
+    else style = MARKER_STYLES.base;
+
+    // Only touch the canvas when a marker's appearance actually changed.
+    if (marker._vgStyle !== style) {
+      marker.setStyle(style);
+      marker._vgStyle = style;
+    }
+  }
+
+  if (quakes?.visible === false) state.map.removeLayer(state.quakeLayer);
+  else if (!state.map.hasLayer(state.quakeLayer)) state.quakeLayer.addTo(state.map);
+
+  if (cities?.visible === false) state.map.removeLayer(state.cityLayer);
+  else if (!state.map.hasLayer(state.cityLayer)) state.cityLayer.addTo(state.map);
+
+  state.bufferLayer.clearLayers();
+  if (adapterState.buffers) {
+    L.geoJSON(adapterState.buffers, {
+      style: { color: '#0f766e', weight: 1, opacity: 0.7, fillColor: '#14b8a6', fillOpacity: 0.12 },
+    }).addTo(state.bufferLayer);
+  }
+
+  renderStats(adapterState, matched.size, hasFilter);
+}
+
+function renderStats(adapterState, matchedCount, hasFilter) {
+  const quakes = adapterState.layers.earthquakes;
+  const selectedCount = (adapterState.selection.earthquakes || []).length;
+
+  $('stat-shown').textContent = formatNumber(hasFilter ? matchedCount : quakes.total);
+  $('stat-shown-note').textContent = hasFilter
+    ? `of ${formatNumber(quakes.total)} match the filter`
+    : `of ${formatNumber(quakes.total)} earthquakes`;
+
+  $('stat-selected').textContent = formatNumber(selectedCount);
+  $('stat-selected-note').textContent = selectedCount === 0
+    ? 'no selection'
+    : 'ready to buffer or export';
+}
+
+/**
+ * Frame the map on the last result — but only when that actually helps.
+ *
+ * A regional answer ("place contains japan") is worth flying to. A globally
+ * scattered one is not: fitting it just zooms back out to the whole world,
+ * which moves the map without telling the user anything.
+ */
+function fitToResult(features) {
+  const points = features
+    .filter((feature) => feature.geometry?.coordinates)
+    .map((feature) => [feature.geometry.coordinates[1], feature.geometry.coordinates[0]]);
+  if (points.length === 0) return;
+
+  const bounds = L.latLngBounds(points);
+  if (!bounds.isValid()) return;
+
+  const spanLon = bounds.getEast() - bounds.getWest();
+  const spanLat = bounds.getNorth() - bounds.getSouth();
+  if (spanLon > 90 || spanLat > 60) return;
+
+  state.map.fitBounds(bounds, { padding: [50, 50], maxZoom: 7, animate: true });
+}
+
+/* ---------------------------------------------------------------- panels */
+
+function renderCatalog(counts) {
+  const host = $('catalog');
+  const nodes = CATALOG.layers.map((layer) => {
+    const wrapper = el('div', 'cat-layer');
+
+    const head = el('div', 'cat-head');
+    head.appendChild(el('strong', null, layer.label));
+    head.appendChild(el('span', 'cat-count', `${formatNumber(counts[layer.id] ?? 0)} features`));
+    wrapper.appendChild(head);
+
+    const aliases = el('div', 'cat-aliases', 'also: ');
+    for (const alias of layer.aliases.slice(0, 4)) {
+      aliases.appendChild(el('code', null, alias));
+    }
+    wrapper.appendChild(aliases);
+
+    const fields = el('div', 'cat-fields');
+    for (const field of layer.fields) {
+      const chip = el('span', 'cat-field', field.unit ? `${field.label} (${field.unit})` : field.label);
+      chip.title = field.id;
+      chip.appendChild(el('em', null, field.type));
+      fields.appendChild(chip);
+    }
+    wrapper.appendChild(fields);
+    return wrapper;
+  });
+
+  replaceChildren(host, ...nodes);
+}
+
+function renderPlaces() {
+  const host = $('places');
+  const nodes = GAZETTEER.places.slice(0, 24).map((place) => {
+    const chip = el('span', 'place-chip', place.name);
+    chip.dataset.kind = place.kind;
+    return chip;
+  });
+  const more = GAZETTEER.places.length - nodes.length;
+  if (more > 0) nodes.push(el('span', 'place-more', `+${more} more`));
+  replaceChildren(host, ...nodes);
+}
+
+function renderPermissions() {
+  const host = $('permissions');
+  const nodes = PERMISSION_LABELS.map(([value, label]) => {
+    const wrapper = el('label', 'perm');
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.value = value;
+    input.checked = state.permissions.has(value);
+    wrapper.appendChild(input);
+    wrapper.appendChild(el('span', null, label));
+    return wrapper;
+  });
+  replaceChildren(host, ...nodes);
+
+  host.addEventListener('change', (event) => {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement)) return;
+    if (input.checked) state.permissions.add(input.value);
+    else state.permissions.delete(input.value);
+    buildCore();
+    toast(`Policy: ${[...state.permissions].join(', ') || 'no permissions'}`);
+  });
+}
+
+function renderChips() {
+  const lane = $('chips');
+  const nodes = EXAMPLES.map(({ label, command }) => {
+    const chip = el('button', 'chip', label);
+    chip.type = 'button';
+    chip.dataset.command = command;
+    chip.title = command;
+    return chip;
+  });
+  replaceChildren(lane, ...nodes);
+
+  lane.addEventListener('click', (event) => {
+    const chip = event.target.closest('.chip');
+    if (!chip) return;
+    // Show the full sentence so the phrasing is learnable, then run it.
+    $('command-input').value = chip.dataset.command;
+    runCommand(chip.dataset.command);
+  });
+
+  const updateEdges = () => {
+    const atStart = lane.scrollLeft <= 1;
+    const atEnd = lane.scrollLeft + lane.clientWidth >= lane.scrollWidth - 1;
+    if (atStart && atEnd) lane.removeAttribute('data-edge');
+    else if (atStart) lane.dataset.edge = 'end';
+    else if (atEnd) lane.dataset.edge = 'start';
+    else lane.dataset.edge = 'both';
+  };
+
+  lane.addEventListener('scroll', updateEdges, { passive: true });
+  window.addEventListener('resize', updateEdges);
+  updateEdges();
+}
+
+/* ------------------------------------------------------------------ tabs */
+
+function selectTab(name) {
+  for (const tab of ['plan', 'catalog']) {
+    const button = $(`tab-${tab}`);
+    const panel = $(`panel-${tab}`);
+    const active = tab === name;
+    button.setAttribute('aria-selected', String(active));
+    button.tabIndex = active ? 0 : -1;
+    panel.hidden = !active;
+  }
+  $('side-scroll').scrollTop = 0;
+}
+
+function initTabs() {
+  const buttons = [$('tab-plan'), $('tab-catalog')];
+  buttons.forEach((button, index) => {
+    button.addEventListener('click', () => selectTab(button.id.replace('tab-', '')));
+    button.addEventListener('keydown', (event) => {
+      if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+      event.preventDefault();
+      const next = buttons[(index + (event.key === 'ArrowRight' ? 1 : buttons.length - 1)) % buttons.length];
+      next.focus();
+      selectTab(next.id.replace('tab-', ''));
+    });
+  });
+}
+
+/* -------------------------------------------------------------- pipeline */
+
+/**
+ * @param {Record<string, 'pending'|'active'|'done'|'failed'|'skipped'>} states
+ * @param {string} [note]
+ */
+function setPipeline(states, note) {
+  for (const stage of STAGES) {
+    const node = document.querySelector(`.pipeline li[data-stage="${stage}"]`);
+    if (node) node.dataset.state = states[stage] || 'pending';
+  }
+  if (note !== undefined) $('pipeline-note').textContent = note;
+}
+
+const PIPELINE_IDLE = Object.freeze({
+  compile: 'pending', ground: 'pending', authorize: 'pending', execute: 'pending',
+});
+
+/** The earliest stage that any issue in a plan belongs to, or null. */
+export function failedStageFor(issues = []) {
+  let failed = null;
+  for (const issue of issues) {
+    if (issue.severity !== 'input' && issue.severity !== 'blocked') continue;
+    const stage = STAGE_BY_ISSUE_CODE[issue.code] || 'compile';
+    if (failed === null || STAGES.indexOf(stage) < STAGES.indexOf(failed)) failed = stage;
+  }
+  return failed;
+}
+
+const STAGE_NOTES = {
+  compile: 'stopped: could not be parsed',
+  ground: 'stopped: not in the catalog',
+  authorize: 'stopped: policy',
+};
+
+/** Translate a compiled plan into stage outcomes. */
+export function pipelineFromPlan(plan) {
+  const failed = failedStageFor(plan.issues);
+  if (!failed) {
+    return {
+      states: { compile: 'done', ground: 'done', authorize: 'done', execute: 'active' },
+      note: 'executing',
+    };
+  }
+
+  const states = {};
+  for (const stage of STAGES) {
+    const position = STAGES.indexOf(stage) - STAGES.indexOf(failed);
+    states[stage] = position < 0 ? 'done' : position === 0 ? 'failed' : 'skipped';
+  }
+  return { states, note: STAGE_NOTES[failed] || 'stopped' };
+}
+
+/* ------------------------------------------------------------------ plan */
+
+function setPlanStatus(status) {
+  const pill = $('plan-status');
+  pill.textContent = status.replace(/_/g, ' ');
+  pill.dataset.state = status;
+}
+
+function operationNode(operation, index) {
+  const item = el('li', 'op');
+  item.dataset.opId = operation.id;
+
+  const head = el('div', 'op-head');
+  head.appendChild(el('span', 'op-index', String(index + 1).padStart(2, '0')));
+  head.appendChild(el('span', 'op-title', OPERATION_TITLES[operation.type] || operation.type));
+  head.appendChild(el('span', 'op-type', operation.type));
+  item.appendChild(head);
+
+  // describeOperation embeds predicate values that came from the command.
+  item.appendChild(el('p', 'op-detail', describeOperation(operation)));
+
+  const badges = el('div', 'op-badges');
+  badges.appendChild(el('span', 'badge', operation.permission));
+  const risk = el('span', 'badge', `risk: ${operation.risk}`);
+  risk.dataset.risk = operation.risk;
+  badges.appendChild(risk);
+  if (operation.requiresConfirmation) {
+    badges.appendChild(el('span', 'badge confirm', 'needs confirmation'));
+  }
+  item.appendChild(badges);
+
+  return item;
+}
+
+function issueNode(issue) {
+  const node = el('div', 'issue');
+  node.dataset.severity = issue.severity;
+  node.dataset.code = issue.code;
+  node.appendChild(el('span', 'issue-message', issue.message));
+
+  const suggestions = issue.details?.suggestions;
+  if (Array.isArray(suggestions) && suggestions.length > 0) {
+    const row = el('div', 'issue-suggestions');
+    for (const suggestion of suggestions) {
+      const button = el('button', 'suggestion', suggestion);
+      button.type = 'button';
+      button.dataset.place = suggestion;
+      row.appendChild(button);
+    }
+    node.appendChild(row);
+  }
+
+  node.appendChild(el('code', null, issue.code));
+  return node;
+}
+
+function renderPlan(plan) {
+  setPlanStatus(plan.status);
+  selectTab('plan');
+  $('plan-empty').hidden = true;
+  $('plan-raw').hidden = false;
+  $('plan-json').textContent = JSON.stringify(plan, null, 2);
+
+  replaceChildren(
+    $('plan-operations'),
+    ...plan.operations.map((operation, index) => operationNode(operation, index))
+  );
+
+  const issues = $('plan-issues');
+  issues.hidden = plan.issues.length === 0;
+  replaceChildren(issues, ...plan.issues.map(issueNode));
+
+  renderAtomicNote(plan);
+}
+
+/**
+ * When a request is only half understood, say so plainly.
+ *
+ * The executor runs a plan as a unit, so the operations it *did* recognize
+ * never ran. Leaving them on screen without that sentence reads as though
+ * they had.
+ */
+function renderAtomicNote(plan) {
+  const note = $('atomic-note');
+  const halted = plan.status === PLAN_STATUS.NEEDS_INPUT || plan.status === PLAN_STATUS.BLOCKED;
+  const recognized = plan.operations.length;
+
+  if (!halted || recognized === 0) {
+    note.hidden = true;
+    note.replaceChildren();
     return;
   }
 
-  for (const layer of Object.values(scenarioLayers)) {
-    if (!layer) continue;
-    if (currentMapEngine === MAP_ENGINE.LEAFLET) {
-      mapController._map.removeLayer(layer);
-    } else {
-      mapController._map.removeLayer(layer);
-    }
-  }
-  scenarioLayers = {};
+  const reason = plan.status === PLAN_STATUS.BLOCKED
+    ? 'because another operation is blocked by policy'
+    : 'because another part of the request needs clarification';
+
+  note.hidden = false;
+  replaceChildren(
+    note,
+    el('strong', null, `${recognized} recognized operation${recognized === 1 ? '' : 's'} did not run`),
+    el('span', null, ` — a request is executed as a whole, so nothing was applied ${reason}.`)
+  );
+
+  for (const item of $('plan-operations').children) item.dataset.result = 'not_executed';
 }
 
-function renderScenarioLayers() {
-  clearScenarioLayers();
-  if (!mapController?._map) return;
+function renderReceipt(receipt) {
+  setPlanStatus(receipt.status);
 
-  if (currentMapEngine === MAP_ENGINE.OPENLAYERS) {
-    renderOpenLayersScenario();
-  } else {
-    renderLeafletScenario();
-  }
-  syncOverlayVisibility();
-}
+  for (const result of receipt.results) {
+    const node = $('plan-operations').querySelector(`[data-op-id="${CSS.escape(result.operationId || '')}"]`);
+    if (!node) continue;
+    node.dataset.result = result.status;
 
-function renderLeafletScenario() {
-  const L = window.L;
-  const risk = L.layerGroup();
-  const perimeter = L.layerGroup();
-  const routes = L.layerGroup();
-  const assets = L.layerGroup();
-
-  currentScenario.risk.forEach((field) => {
-    const critical = field.intensity > 0.8;
-    L.circle(field.coords, {
-      radius: field.radius,
-      color: critical ? '#ff4d5f' : '#ff9e4a',
-      weight: 1,
-      opacity: 0.32,
-      fillColor: critical ? '#ff4d5f' : '#ff9e4a',
-      fillOpacity: 0.07 + field.intensity * 0.08,
-      interactive: false,
-    }).addTo(risk);
-    L.circle(field.coords, {
-      radius: field.radius * 0.55,
-      stroke: false,
-      fillColor: critical ? '#ff4d5f' : '#ffb05e',
-      fillOpacity: 0.09 + field.intensity * 0.1,
-      interactive: false,
-    }).addTo(risk);
-  });
-
-  currentScenario.zones.forEach((zone) => {
-    const palette = {
-      critical: ['#ff4d5f', '#ff4d5f'],
-      elevated: ['#f5ba45', '#f5ba45'],
-      monitor: ['#64c8ff', '#64c8ff'],
-    }[zone.severity];
-    L.polygon(zone.coords, {
-      color: palette[0],
-      weight: zone.severity === 'critical' ? 2 : 1,
-      dashArray: zone.severity === 'monitor' ? '5 6' : null,
-      fillColor: palette[1],
-      fillOpacity: zone.severity === 'critical' ? 0.16 : 0.08,
-      className: zone.severity === 'critical' ? 'critical-perimeter' : '',
-    })
-      .bindPopup(`<strong>${zone.name}</strong><br>${zone.severity.toUpperCase()} RESPONSE ZONE`)
-      .addTo(perimeter);
-  });
-
-  currentScenario.routes.forEach((route, index) => {
-    L.polyline(route.coords, {
-      color: index === 0 ? '#67e8c2' : '#64c8ff',
-      weight: 2.5,
-      opacity: 0.85,
-      dashArray: '8 12',
-      className: 'animated-route',
-    })
-      .bindTooltip(route.name, { className: 'asset-tooltip', sticky: true })
-      .addTo(routes);
-  });
-
-  currentScenario.assets.forEach((asset) => {
-    const icon = L.divIcon({
-      className: '',
-      html: `<span class="asset-beacon${asset.alert ? ' alert' : ''}"><i></i></span>`,
-      iconSize: [20, 20],
-      iconAnchor: [10, 10],
-    });
-    L.marker(asset.coords, {
-      icon,
-      title: `${asset.name}: ${asset.type}, ${asset.status}`,
-      alt: `${asset.name} field asset`,
-    })
-      .bindTooltip(`${asset.name} / ${asset.status.toUpperCase()}`, {
-        className: 'asset-tooltip',
-        direction: 'top',
-        offset: [0, -8],
-      })
-      .bindPopup(`<strong>${asset.name}</strong><br>${asset.type}<br>STATUS / ${asset.status.toUpperCase()}`)
-      .addTo(assets);
-  });
-
-  scenarioLayers = { risk, perimeter, routes, assets };
-  Object.values(scenarioLayers).forEach((layer) => layer.addTo(mapController._map));
-}
-
-function renderOpenLayersScenario() {
-  const ol = window.ol;
-  const project = (coords) => ol.proj.fromLonLat([coords[1], coords[0]]);
-
-  const riskFeatures = currentScenario.risk.map((field) => new ol.Feature({
-    geometry: new ol.geom.Point(project(field.coords)),
-    intensity: field.intensity,
-  }));
-  const riskLayer = new ol.layer.Vector({
-    source: new ol.source.Vector({ features: riskFeatures }),
-    style: (feature) => {
-      const intensity = feature.get('intensity');
-      return new ol.style.Style({
-        image: new ol.style.Circle({
-          radius: 18 + intensity * 25,
-          fill: new ol.style.Fill({ color: intensity > 0.8 ? 'rgba(255,77,95,.16)' : 'rgba(245,186,69,.13)' }),
-          stroke: new ol.style.Stroke({ color: intensity > 0.8 ? 'rgba(255,77,95,.55)' : 'rgba(245,186,69,.45)', width: 1 }),
-        }),
-      });
-    },
-  });
-
-  const perimeterFeatures = currentScenario.zones.map((zone) => new ol.Feature({
-    geometry: new ol.geom.Polygon([[...zone.coords, zone.coords[0]].map(project)]),
-    severity: zone.severity,
-  }));
-  const perimeterLayer = new ol.layer.Vector({
-    source: new ol.source.Vector({ features: perimeterFeatures }),
-    style: (feature) => {
-      const severity = feature.get('severity');
-      const color = severity === 'critical' ? '255,77,95' : severity === 'elevated' ? '245,186,69' : '100,200,255';
-      return new ol.style.Style({
-        fill: new ol.style.Fill({ color: `rgba(${color},.09)` }),
-        stroke: new ol.style.Stroke({ color: `rgba(${color},.8)`, width: severity === 'critical' ? 2 : 1, lineDash: severity === 'monitor' ? [5, 6] : undefined }),
-      });
-    },
-  });
-
-  const routeFeatures = currentScenario.routes.map((route) => new ol.Feature({
-    geometry: new ol.geom.LineString(route.coords.map(project)),
-  }));
-  const routesLayer = new ol.layer.Vector({
-    source: new ol.source.Vector({ features: routeFeatures }),
-    style: new ol.style.Style({
-      stroke: new ol.style.Stroke({ color: '#67e8c2', width: 2, lineDash: [8, 12] }),
-    }),
-  });
-
-  const assetFeatures = currentScenario.assets.map((asset) => new ol.Feature({
-    geometry: new ol.geom.Point(project(asset.coords)),
-    alert: asset.alert,
-  }));
-  const assetsLayer = new ol.layer.Vector({
-    source: new ol.source.Vector({ features: assetFeatures }),
-    style: (feature) => new ol.style.Style({
-      image: new ol.style.Circle({
-        radius: 5,
-        fill: new ol.style.Fill({ color: feature.get('alert') ? '#ff6b35' : '#67e8c2' }),
-        stroke: new ol.style.Stroke({ color: '#071012', width: 2 }),
-      }),
-    }),
-  });
-
-  scenarioLayers = { risk: riskLayer, perimeter: perimeterLayer, routes: routesLayer, assets: assetsLayer };
-  Object.values(scenarioLayers).forEach((layer) => mapController._map.addLayer(layer));
-}
-
-function syncOverlayVisibility() {
-  document.querySelectorAll('[data-overlay]').forEach((checkbox) => {
-    const layer = scenarioLayers[checkbox.dataset.overlay];
-    if (!layer || !mapController?._map) return;
-
-    if (currentMapEngine === MAP_ENGINE.LEAFLET) {
-      const visible = mapController._map.hasLayer(layer);
-      if (checkbox.checked && !visible) layer.addTo(mapController._map);
-      if (!checkbox.checked && visible) mapController._map.removeLayer(layer);
-    } else {
-      layer.setVisible(checkbox.checked);
-    }
-  });
-  updateLayerCount();
-}
-
-function setOverlayVisibility(overlayId, visible) {
-  const checkbox = document.querySelector(`[data-overlay="${overlayId}"]`);
-  if (!checkbox) return false;
-  checkbox.checked = visible;
-  syncOverlayVisibility();
-  return true;
-}
-
-function setBasemap(layerId) {
-  if (!mapController) return;
-  ['osm', 'dark', 'nasa', 'terrain'].forEach((id) => mapController.hideLayer(id));
-  mapController.showLayer(layerId);
-  activeBasemap = layerId;
-  const radio = document.querySelector(`input[name="basemap"][value="${layerId}"]`);
-  if (radio) radio.checked = true;
-  updateLayerCount();
-}
-
-function updateLayerCount() {
-  const overlayCount = [...document.querySelectorAll('[data-overlay]')].filter((item) => item.checked).length;
-  dom.layerCount.textContent = `${overlayCount + 1} ACTIVE`;
-}
-
-function activateScenario(key, options = {}) {
-  const scenario = SCENARIOS[key];
-  if (!scenario) return false;
-  currentScenario = scenario;
-
-  dom.missionTitle.textContent = scenario.title;
-  dom.missionSummary.textContent = scenario.summary;
-  dom.missionState.textContent = scenario.state;
-  dom.missionState.className = `status-tag ${scenario.stateClass}`;
-  dom.missionCode.textContent = `MISSION ${scenario.code}`;
-  dom.mapTitle.textContent = scenario.mapTitle;
-  dom.mapSubtitle.textContent = `${scenario.center[0].toFixed(4)}° N / ${Math.abs(scenario.center[1]).toFixed(4)}° ${scenario.center[1] < 0 ? 'W' : 'E'} / SIMULATED OPERATIONAL DATA`;
-  dom.assetCount.textContent = String(scenario.assetTotal).padStart(2, '0');
-  dom.zoneCount.textContent = String(scenario.zones.length).padStart(2, '0');
-  dom.coverageValue.textContent = `${scenario.coverage}%`;
-
-  document.querySelectorAll('[data-scenario]').forEach((button) => {
-    const selected = button.dataset.scenario === key;
-    button.classList.toggle('active', selected);
-    button.setAttribute('aria-selected', String(selected));
-  });
-
-  renderSuggestions();
-  renderScenarioLayers();
-  if (options.fly === false) setMissionViewImmediately();
-  else mapController?.goTo(scenario.center, scenario.zoom, scenario.title);
-  updateMapReadout();
-  if (!options.silent) showToast(`${scenario.title} operational picture loaded.`, 'success');
-  return true;
-}
-
-function setMissionViewImmediately() {
-  if (!mapController?._map) return;
-  if (currentMapEngine === MAP_ENGINE.OPENLAYERS) {
-    const view = mapController._map.getView();
-    view.setCenter(window.ol.proj.fromLonLat([currentScenario.center[1], currentScenario.center[0]]));
-    view.setZoom(currentScenario.zoom);
-  } else {
-    mapController._map.setView(currentScenario.center, currentScenario.zoom, { animate: false });
-  }
-  updateMapReadout();
-}
-
-function renderSuggestions() {
-  dom.commandSuggestions.replaceChildren();
-  currentScenario.suggestions.forEach((suggestion) => {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.textContent = suggestion;
-    button.addEventListener('click', () => runCommand(suggestion, 'suggestion'));
-    dom.commandSuggestions.appendChild(button);
-  });
-}
-
-function updateMapReadout() {
-  if (!mapController) return;
-  const center = mapController.getCenter();
-  const zoom = mapController.getZoom();
-  if (!Number.isFinite(center.lat) || !Number.isFinite(center.lng)) return;
-  dom.mapCoordinates.textContent = `${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`;
-  dom.mapZoom.textContent = `Z${Math.round(zoom ?? 0)}`;
-}
-
-function parseDomainCommand(text) {
-  const normalized = text.toLowerCase().trim();
-  const scenarioMatch = normalized.match(/\b(?:load|open|run|activate|switch to)\s+(?:the\s+)?(monsoon|wildfire|urban)(?:\s+(?:mission|scenario|response))?\b/);
-  if (scenarioMatch) {
-    return {
-      intent: 'load_scenario',
-      payload: { scenario: scenarioMatch[1] },
-      raw: text,
-      confidence: 1,
-      domain: true,
-    };
+    const line = el('p', 'op-result');
+    line.dataset.result = result.status;
+    // Adapter messages can quote values that came from the command.
+    line.textContent = result.status === 'failed'
+      ? `failed — ${result.error?.message ?? 'unknown error'}`
+      : result.status === 'cancelled'
+        ? 'cancelled'
+        : describeResult(result);
+    node.appendChild(line);
   }
 
-  if (/\bfocus\s+(?:the\s+)?(?:critical|highest risk|priority)\s+zone\b/.test(normalized)) {
-    return {
-      intent: 'focus_critical_zone',
-      payload: { zoneIndex: 0 },
-      raw: text,
-      confidence: 0.98,
-      domain: true,
-    };
-  }
-
-  const overlayMatch = normalized.match(/\b(show|enable|hide|disable)\s+(?:the\s+)?(risk(?:\s+field)?|perimeters?|response\s+routes?|routes?|field\s+assets?|assets?|responders?)\b/);
-  if (overlayMatch) {
-    const overlayAliases = {
-      risk: 'risk',
-      'risk field': 'risk',
-      perimeter: 'perimeter',
-      perimeters: 'perimeter',
-      'response route': 'routes',
-      'response routes': 'routes',
-      route: 'routes',
-      routes: 'routes',
-      'field asset': 'assets',
-      'field assets': 'assets',
-      asset: 'assets',
-      assets: 'assets',
-      responder: 'assets',
-      responders: 'assets',
-    };
-    return {
-      intent: overlayMatch[1] === 'show' || overlayMatch[1] === 'enable' ? 'show_overlay' : 'hide_overlay',
-      payload: { overlayId: overlayAliases[overlayMatch[2]] },
-      raw: text,
-      confidence: 0.97,
-      domain: true,
-    };
-  }
-
-  return null;
-}
-
-async function compileCommand(text) {
-  const started = performance.now();
-  const parts = splitCommandString(text);
-  const safeParts = parts.length > 0 ? parts : [text];
-  const results = [];
-  let parserTime = 0;
-
-  for (const part of safeParts) {
-    const domainResult = parseDomainCommand(part);
-    if (domainResult) {
-      results.push(domainResult);
-      continue;
-    }
-    const parseStarted = performance.now();
-    const result = await parseCommand(part, { enableGeocoding: navigator.onLine });
-    parserTime += performance.now() - parseStarted;
-    results.push(result);
-  }
-
-  return {
-    results,
-    chainSize: safeParts.length,
-    parserTime,
-    compileTime: performance.now() - started,
-  };
-}
-
-function snapshotForIntent(intent) {
-  return [
-    INTENT.ZOOM_IN,
-    INTENT.ZOOM_OUT,
-    INTENT.PAN_LEFT,
-    INTENT.PAN_RIGHT,
-    INTENT.PAN_UP,
-    INTENT.PAN_DOWN,
-    INTENT.GO_TO,
-    INTENT.RESET_VIEW,
-  ].includes(intent);
-}
-
-async function executeResult(result) {
-  if (snapshotForIntent(result.intent)) cameraHistory.snapshot(mapController);
-
-  switch (result.intent) {
-    case INTENT.ZOOM_IN:
-      mapController.zoomIn();
-      return 'Viewport zoom increased';
-    case INTENT.ZOOM_OUT:
-      mapController.zoomOut();
-      return 'Viewport zoom reduced';
-    case INTENT.PAN_LEFT:
-      mapController.panLeft();
-      return 'Viewport moved west';
-    case INTENT.PAN_RIGHT:
-      mapController.panRight();
-      return 'Viewport moved east';
-    case INTENT.PAN_UP:
-      mapController.panUp();
-      return 'Viewport moved north';
-    case INTENT.PAN_DOWN:
-      mapController.panDown();
-      return 'Viewport moved south';
-    case INTENT.GO_TO:
-      mapController.goTo(result.payload.coords, 12, result.payload.place);
-      return `Centered on ${result.payload.place}`;
-    case INTENT.SHOW_LAYER:
-      setBasemap(result.payload.layerId);
-      return `${result.payload.layerId} basemap enabled`;
-    case INTENT.HIDE_LAYER:
-      mapController.hideLayer(result.payload.layerId);
-      return `${result.payload.layerId} basemap hidden`;
-    case INTENT.ADD_MARKER:
-      if (result.payload.useCurrentLocation) {
-        const coords = await mapController.addMarkerAtCurrentLocation();
-        return `Field marker placed at ${coords[0].toFixed(4)}, ${coords[1].toFixed(4)}`;
-      }
-      {
-        const center = mapController.getCenter();
-        mapController.addMarker([center.lat, center.lng], 'VoiceGIS field marker');
-        return 'Field marker placed at map center';
-      }
-    case INTENT.SWITCH_MAP:
-      await switchMapEngine(result.payload.engine);
-      return `Execution adapter switched to ${result.payload.engine}`;
-    case INTENT.RESET_VIEW:
-      mapController.goTo(currentScenario.center, currentScenario.zoom, currentScenario.title);
-      return 'Mission viewport restored';
-    case INTENT.UNDO:
-      return cameraHistory.undo(mapController) ? 'Previous camera state restored' : 'Undo stack is empty';
-    case INTENT.REDO:
-      return cameraHistory.redo(mapController) ? 'Next camera state restored' : 'Redo stack is empty';
-    case 'load_scenario':
-      activateScenario(result.payload.scenario);
-      return `${SCENARIOS[result.payload.scenario].title} loaded`;
-    case 'focus_critical_zone':
-      {
-        const zone = currentScenario.zones[result.payload.zoneIndex];
-        const center = getPolygonCenter(zone.coords);
-        mapController.goTo(center, currentScenario.zoom + 2, zone.name);
-        setOverlayVisibility('perimeter', true);
-        setOverlayVisibility('risk', true);
-        return `Focused ${zone.name}`;
-      }
-    case 'show_overlay':
-      setOverlayVisibility(result.payload.overlayId, true);
-      return `${result.payload.overlayId} overlay enabled`;
-    case 'hide_overlay':
-      setOverlayVisibility(result.payload.overlayId, false);
-      return `${result.payload.overlayId} overlay hidden`;
-    default:
-      return `No executable intent for “${result.raw}”`;
+  const orphan = receipt.results.find((result) => !result.operationId && result.error);
+  if (orphan) {
+    const issues = $('plan-issues');
+    issues.hidden = false;
+    issues.appendChild(issueNode({
+      code: 'execution_failed',
+      severity: 'blocked',
+      message: orphan.error.message,
+    }));
   }
 }
 
-function getPolygonCenter(coords) {
-  const total = coords.reduce((acc, coord) => [acc[0] + coord[0], acc[1] + coord[1]], [0, 0]);
-  return [total[0] / coords.length, total[1] / coords.length];
-}
+/* ------------------------------------------------------------------ core */
 
-async function switchMapEngine(engineName) {
-  const engine = engineName === 'openlayers' ? MAP_ENGINE.OPENLAYERS : MAP_ENGINE.LEAFLET;
-  if (engine === currentMapEngine) return;
-  initMap(engine);
-  mapController.goTo(currentScenario.center, currentScenario.zoom, currentScenario.title);
-  showToast(`GIS adapter switched to ${engine}.`, 'success');
-}
-
-async function runCommand(text, source = 'typed') {
-  const command = text?.trim();
-  if (!command) return;
-
-  dom.commandInput.value = command;
-  dom.commandState.textContent = 'COMPILING COMMAND GRAPH';
-  resetPipeline();
-  setPipelineStage('capture', 'active', source === 'voice' ? 'Voice transcript received' : 'Text command received', 'LIVE');
-
-  try {
-    const compiled = await compileCommand(command);
-    setPipelineStage('capture', 'complete', source === 'voice' ? 'Transcript normalized' : 'Text normalized', '<1 ms');
-    setPipelineStage('segment', 'complete', `${compiled.chainSize} command node${compiled.chainSize === 1 ? '' : 's'}`, `${compiled.chainSize}×`);
-    setPipelineStage(
-      'resolve',
-      compiled.results.some((result) => result.intent === INTENT.UNKNOWN) ? 'error' : 'complete',
-      compiled.results.map((result) => result.intent).join(' → '),
-      `${compiled.parserTime.toFixed(1)} ms`
-    );
-    setPipelineStage('execute', 'active', 'Dispatching to map adapter', currentMapEngine);
-
-    const hasUnknown = compiled.results.some((result) => result.intent === INTENT.UNKNOWN);
-    if (hasUnknown) {
-      for (const result of compiled.results) {
-        tracker.recordCommand({
-          raw: result.raw,
-          intent: result.intent,
-          payload: result.payload,
-          confidence: result.confidence,
-          latency: compiled.parserTime / compiled.results.length,
-        });
-      }
-      setPipelineStage(
-        'execute',
-        'error',
-        'Nothing executed. Clarify every command before the map is changed.',
-        'BLOCKED'
-      );
-      dom.compilerLatency.textContent = `${compiled.compileTime.toFixed(1)} MS`;
-      dom.commandState.textContent = 'NEEDS CLARIFICATION';
-      renderCompiledIntent(command, source, compiled, compiled.compileTime, 'blocked');
-      addCommandEvidence(command, compiled.results, compiled.compileTime);
-      updateSessionMetrics();
-      showToast('Command not run because at least one action was not understood. Try a suggested command.', 'warning');
-      return;
-    }
-
-    const executionStarted = performance.now();
-    const messages = [];
-    for (const result of compiled.results) {
-      const resultStarted = performance.now();
-      const message = await executeResult(result);
-      const resultLatency = performance.now() - resultStarted;
-      messages.push(message);
-      tracker.recordCommand({
-        raw: result.raw,
-        intent: result.intent,
-        payload: result.payload,
-        confidence: result.confidence,
-        latency: resultLatency + compiled.parserTime / compiled.results.length,
-      });
-    }
-
-    const executionTime = performance.now() - executionStarted;
-    const totalTime = compiled.compileTime + executionTime;
-    setPipelineStage('execute', 'complete', `${compiled.results.length} action${compiled.results.length === 1 ? '' : 's'} committed`, `${executionTime.toFixed(1)} ms`);
-    dom.compilerLatency.textContent = `${totalTime.toFixed(1)} MS`;
-    dom.commandState.textContent = 'COMMAND COMMITTED';
-    renderCompiledIntent(command, source, compiled, totalTime);
-    addCommandEvidence(command, compiled.results, totalTime);
-    updateSessionMetrics();
-
-    showToast(messages.join(' · '), 'success');
-  } catch (error) {
-    setPipelineStage('execute', 'error', error.message, 'FAILED');
-    dom.commandState.textContent = 'EXECUTION FAILED';
-    showToast(error.message, 'error');
-  }
-}
-
-function resetPipeline() {
-  dom.pipeline.querySelectorAll('.pipeline-step').forEach((step) => {
-    step.className = 'pipeline-step idle';
-    step.querySelector('em').textContent = '—';
-  });
-}
-
-function setPipelineStage(stage, state, detail, timing) {
-  const element = dom.pipeline.querySelector(`[data-stage="${stage}"]`);
-  element.className = `pipeline-step ${state}`;
-  element.querySelector('small').textContent = detail;
-  element.querySelector('em').textContent = timing;
-}
-
-function renderCompiledIntent(command, source, compiled, totalTime, status = 'committed') {
-  const payload = {
-    status,
-    source,
-    transcript: command,
-    adapter: currentMapEngine,
-    chain_size: compiled.chainSize,
-    duration_ms: Number(totalTime.toFixed(2)),
-    commands: compiled.results.map((result) => ({
-      intent: result.intent,
-      confidence: Number((result.confidence || 0).toFixed(3)),
-      payload: result.payload,
-    })),
-  };
-  dom.compiledIntent.textContent = JSON.stringify(payload, null, 2);
-}
-
-function addCommandEvidence(command, results, latency) {
-  commandRecords.unshift({
-    id: commandRecords.length + 1,
-    command,
-    intent: results.map((result) => result.intent).join(' + '),
-    latency,
-    timestamp: new Date().toISOString(),
-  });
-  commandRecords = commandRecords.slice(0, 20);
-  renderCommandHistory();
-}
-
-function renderCommandHistory() {
-  dom.commandHistory.replaceChildren();
-  commandRecords.slice(0, 6).forEach((record, index) => {
-    const item = document.createElement('li');
-    const number = document.createElement('span');
-    const body = document.createElement('p');
-    const commandText = document.createElement('strong');
-    const intentText = document.createTextNode(record.intent);
-    const latency = document.createElement('em');
-
-    number.textContent = String(commandRecords.length - index).padStart(2, '0');
-    commandText.textContent = record.command;
-    body.append(commandText, intentText);
-    latency.textContent = `${record.latency.toFixed(1)}ms`;
-    item.append(number, body, latency);
-    dom.commandHistory.appendChild(item);
-  });
-}
-
-function updateSessionMetrics() {
-  const stats = tracker.getStats();
-  const accuracy = stats.accuracy === null ? 0.937 : stats.accuracy;
-  dom.sessionAccuracy.textContent = `${(accuracy * 100).toFixed(1)}%`;
-  dom.sessionCommands.textContent = String(stats.total);
-  dom.averageLatency.textContent = stats.avgLatency === null ? '—' : `${stats.avgLatency.toFixed(1)}ms`;
-  dom.unknownCount.textContent = String(stats.unknown);
-  dom.accuracyRing.style.setProperty('--accuracy', (accuracy * 100).toFixed(1));
-}
-
-async function ensureSpeechEngine() {
-  const selectedType = dom.engineSelect.value;
-  if (speechEngine && activeSpeechType === selectedType) return speechEngine;
-
-  if (speechEngine?.isListening) speechEngine.stop();
-  speechEngine = null;
-  activeSpeechType = selectedType;
-  dom.voiceButton.classList.add('loading');
-  dom.engineDot.className = 'signal-dot loading';
-  dom.engineLabel.textContent = 'LOADING';
-  dom.commandState.textContent = 'INITIALIZING VOICE ENGINE';
-
-  let actualType = selectedType;
-  if (selectedType === 'auto') {
-    const hasWebSpeech = Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
-    actualType = hasWebSpeech && navigator.onLine ? ENGINE_TYPE.WEB_SPEECH : ENGINE_TYPE.WHISPER;
-  }
-
-  if (actualType === ENGINE_TYPE.TFJS) await loadTfjsRuntime();
-
-  const options = {
-    engine: actualType,
-    onResult: (text, isFinal) => {
-      dom.commandInput.value = text;
-      dom.commandState.textContent = isFinal ? 'FINAL TRANSCRIPT RECEIVED' : 'LISTENING / INTERIM TRANSCRIPT';
-      if (isFinal) runCommand(text, 'voice');
-    },
-    onError: (error) => {
-      dom.engineDot.className = 'signal-dot error';
-      dom.engineLabel.textContent = 'ENGINE ERROR';
-      dom.voiceButton.classList.remove('loading', 'listening');
-      waveformListening = false;
-      showToast(error.message, 'error');
-    },
-    onStart: () => {
-      dom.voiceButton.classList.remove('loading');
-      dom.voiceButton.classList.add('listening');
-      dom.commandState.textContent = 'LISTENING / SPEAK A COMMAND';
-      waveformListening = true;
-    },
-    onEnd: () => {
-      dom.voiceButton.classList.remove('loading', 'listening');
-      dom.commandState.textContent = 'READY FOR INPUT';
-      waveformListening = false;
-    },
-  };
-
-  if (actualType === ENGINE_TYPE.WHISPER) {
-    options.onModelProgress = (progress) => {
-      const percentage = Math.round(progress.progress * 100);
-      dom.engineLabel.textContent = `WHISPER ${percentage}%`;
-      dom.commandState.textContent = progress.status.toUpperCase();
-    };
-    options.onStateChange = (state) => {
-      if (state === WHISPER_STATE.PROCESSING) dom.commandState.textContent = 'WHISPER / LOCAL INFERENCE';
-    };
-  }
-
-  speechEngine = new SpeechEngine(options);
-  try {
-    await speechEngine.init();
-    dom.engineDot.className = 'signal-dot live';
-    dom.engineLabel.textContent = actualType.toUpperCase();
-    dom.voiceButton.classList.remove('loading');
-    dom.commandState.textContent = 'VOICE ENGINE READY';
-    showToast(`${actualType.toUpperCase()} engine ready.`, 'success');
-    return speechEngine;
-  } catch (error) {
-    speechEngine = null;
-    activeSpeechType = null;
-    dom.engineDot.className = 'signal-dot error';
-    dom.engineLabel.textContent = 'UNAVAILABLE';
-    dom.voiceButton.classList.remove('loading');
-    throw error;
-  }
-}
-
-async function loadTfjsRuntime() {
-  if (window.speechCommands) return;
-  await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js');
-  await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/speech-commands@0.5.4/dist/speech-commands.min.js');
-}
-
-function loadScript(src) {
-  return new Promise((resolve, reject) => {
-    const existing = document.querySelector(`script[src="${src}"]`);
-    if (existing) {
-      if (existing.dataset.loaded === 'true') resolve();
-      else existing.addEventListener('load', resolve, { once: true });
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = src;
-    script.addEventListener('load', () => {
-      script.dataset.loaded = 'true';
+/**
+ * Resolve once the map has finished moving.
+ *
+ * A plan can hold several view operations ("go to India and zoom in"). The
+ * executor runs them in order and awaits each one, so each has to wait for its
+ * animation: starting the next move mid-flight cancels the first and leaves
+ * the map somewhere neither operation asked for.
+ *
+ * The timeout covers the case where a move is a no-op and `moveend` never
+ * fires.
+ */
+function mapSettled(map, timeout = 800) {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      map.off('moveend', finish);
       resolve();
-    }, { once: true });
-    script.addEventListener('error', () => reject(new Error(`Failed to load ${src}`)), { once: true });
-    document.head.appendChild(script);
+    };
+    map.on('moveend', finish);
+    setTimeout(finish, timeout);
   });
 }
 
-function initWaveform() {
-  const canvas = dom.waveformCanvas;
-  const context = canvas.getContext('2d');
-  const resize = () => {
-    const rect = canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = Math.max(1, Math.round(rect.width * dpr));
-    canvas.height = Math.max(1, Math.round(rect.height * dpr));
-    context.setTransform(dpr, 0, 0, dpr, 0, 0);
-  };
-  resize();
-  window.addEventListener('resize', resize);
-
-  const render = (timestamp) => {
-    const width = canvas.clientWidth;
-    const height = canvas.clientHeight;
-    context.clearRect(0, 0, width, height);
-    context.strokeStyle = waveformListening ? '#ff6b35' : '#536165';
-    context.lineWidth = 1;
-    context.beginPath();
-
-    const amplitude = waveformListening ? height * 0.31 : height * 0.035;
-    for (let x = 0; x <= width; x += 2) {
-      const envelope = Math.sin((x / Math.max(1, width)) * Math.PI);
-      const wave = Math.sin(x * 0.13 + timestamp * 0.01) + Math.sin(x * 0.037 - timestamp * 0.006) * 0.55;
-      const y = height / 2 + wave * amplitude * envelope;
-      if (x === 0) context.moveTo(x, y);
-      else context.lineTo(x, y);
-    }
-    context.stroke();
-    waveformFrame = requestAnimationFrame(render);
-  };
-  waveformFrame = requestAnimationFrame(render);
-}
-
-function updateOnlineStatus() {
-  const online = navigator.onLine;
-  dom.offlineBanner.classList.toggle('visible', !online);
-  dom.networkDot.className = `signal-dot ${online ? 'live' : 'error'}`;
-  dom.networkLabel.textContent = online ? 'ONLINE' : 'FIELD MODE';
-}
-
-function showToast(message, type = 'info') {
-  const toast = document.createElement('div');
-  const dot = document.createElement('i');
-  const text = document.createElement('span');
-  const meta = document.createElement('small');
-  toast.className = `toast ${type}`;
-  text.textContent = message;
-  meta.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  toast.append(dot, text, meta);
-  dom.toastRegion.appendChild(toast);
-  window.setTimeout(() => toast.remove(), 3600);
-}
-
-function downloadFile(content, filename, type) {
-  const blob = new Blob([content], { type });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 0);
-}
-
-async function runProductTour() {
-  if (tourRunning) return;
-  tourRunning = true;
-  showToast('Product tour started. Watch the command graph and map layers respond.', 'info');
-  const tourCommands = [
-    'load wildfire response',
-    'focus critical zone and show response routes',
-    'show terrain and zoom in',
-  ];
-
-  for (const command of tourCommands) {
-    if (!tourRunning) break;
-    await runCommand(command, 'tour');
-    await new Promise((resolve) => window.setTimeout(resolve, 950));
-  }
-  tourRunning = false;
-  showToast('Tour complete. The command bus is yours.', 'success');
-}
-
-function setDrawer(open) {
-  const wasOpen = dom.telemetryDrawer.classList.contains('open');
-  if (open && !wasOpen) activeDrawerTrigger = document.activeElement;
-  dom.telemetryDrawer.classList.toggle('open', open);
-  dom.telemetryDrawer.setAttribute('aria-hidden', String(!open));
-  dom.telemetryDrawer.toggleAttribute('inert', !open);
-  dom.drawerBackdrop.classList.toggle('open', open);
-  if (open) {
-    dom.telemetryClose.focus();
-  } else if (wasOpen && activeDrawerTrigger?.isConnected) {
-    activeDrawerTrigger.focus();
-    activeDrawerTrigger = null;
-  }
-}
-
-function syncMobilePanelAccessibility() {
-  document.querySelectorAll('.side-panel').forEach((panel) => {
-    const hidden = mobileLayout.matches && !panel.classList.contains('open');
-    panel.setAttribute('aria-hidden', String(hidden));
-    panel.toggleAttribute('inert', hidden);
+function buildCore() {
+  const mapAdapter = createFunctionAdapter({
+    [OPERATION.VIEW_ZOOM]: async ({ args }) => {
+      state.map.setZoom(state.map.getZoom() + (args.delta > 0 ? 1 : -1));
+      await mapSettled(state.map);
+      return { zoom: state.map.getZoom() };
+    },
+    [OPERATION.VIEW_PAN]: async ({ args }) => {
+      const size = state.map.getSize();
+      const offsets = {
+        left: [-size.x / 3, 0],
+        right: [size.x / 3, 0],
+        up: [0, -size.y / 3],
+        down: [0, size.y / 3],
+      };
+      state.map.panBy(offsets[args.direction] || [0, 0]);
+      await mapSettled(state.map);
+      return { direction: args.direction };
+    },
+    [OPERATION.VIEW_SET]: async ({ args }) => {
+      // A country or region carries bounds; framing the extent is the whole
+      // point of resolving it as an area rather than a point.
+      if (Array.isArray(args.bounds)) {
+        state.map.fitBounds(args.bounds, { padding: [24, 24], animate: true });
+        await mapSettled(state.map);
+        return { bounds: args.bounds, zoom: state.map.getZoom() };
+      }
+      if (Array.isArray(args.center)) {
+        state.map.setView(args.center, args.zoom ?? 9, { animate: true });
+        await mapSettled(state.map);
+        return { center: args.center, zoom: state.map.getZoom() };
+      }
+      return { center: null };
+    },
+    [OPERATION.VIEW_RESET]: async () => {
+      showWholeWorld({ animate: true });
+      await mapSettled(state.map);
+      return { reset: true };
+    },
   });
-  document.querySelectorAll('[data-open-panel]').forEach((button) => {
-    const panel = document.getElementById(button.dataset.openPanel);
-    button.setAttribute('aria-expanded', String(Boolean(panel?.classList.contains('open'))));
+
+  state.core = createVoiceGISCore({
+    catalog: CATALOG,
+    adapter: composeAdapters(state.data, mapAdapter),
+    resolvers: [createPlaceResolver({ places: GAZETTEER.places })],
+    policy: {
+      permissions: [...state.permissions],
+      confirm: [OPERATION.DATA_EXPORT, OPERATION.ANALYSIS_BUFFER],
+    },
   });
 }
 
-function closeMobilePanels({ restoreFocus = true } = {}) {
-  document.querySelectorAll('.side-panel.open').forEach((panel) => panel.classList.remove('open'));
-  syncMobilePanelAccessibility();
-  if (!dom.telemetryDrawer.classList.contains('open')) dom.drawerBackdrop.classList.remove('open');
-  if (restoreFocus && activeMobileTrigger?.isConnected && mobileLayout.matches) {
-    activeMobileTrigger.focus();
-  }
-  activeMobileTrigger = null;
-}
+/**
+ * Ask the operator to approve a confirmation-gated operation.
+ *
+ * Resolution is driven by the buttons rather than the dialog's `close` event:
+ * a missed event would leave this promise pending forever and wedge the
+ * command console, and the executor is waiting on it before any side effect.
+ */
+function confirmOperation(operation) {
+  const dialog = $('confirm-dialog');
+  const accept = $('confirm-accept');
+  const cancel = $('confirm-cancel');
 
-function openMobilePanel(panelId, trigger) {
-  closeMobilePanels({ restoreFocus: false });
-  const panel = document.getElementById(panelId);
-  if (!panel) return;
-  panel.classList.add('open');
-  activeMobileTrigger = trigger;
-  syncMobilePanelAccessibility();
-  dom.drawerBackdrop.classList.add('open');
-  panel.querySelector('[data-close-panel]')?.focus();
-}
+  $('confirm-title').textContent =
+    `Confirm: ${OPERATION_TITLES[operation.type] || operation.type}`;
 
-function bindEvents() {
-  document.querySelectorAll('[data-scenario]').forEach((button) => {
-    button.addEventListener('click', () => {
-      activateScenario(button.dataset.scenario);
-      if (mobileLayout.matches) closeMobilePanels();
-    });
-  });
+  replaceChildren(
+    $('confirm-body'),
+    el('span', null, 'This operation is marked '),
+    el('code', null, operation.risk),
+    el('span', null, ' risk and requires the '),
+    el('code', null, operation.permission),
+    el('span', null, ' permission.'),
+    el('br'),
+    el('br'),
+    el('code', null, describeOperation(operation))
+  );
 
-  document.querySelectorAll('input[name="basemap"]').forEach((radio) => {
-    radio.addEventListener('change', () => {
-      if (radio.checked) setBasemap(radio.value);
-    });
-  });
-
-  document.querySelectorAll('[data-overlay]').forEach((checkbox) => {
-    checkbox.addEventListener('change', syncOverlayVisibility);
-  });
-
-  dom.commandForm.addEventListener('submit', (event) => {
-    event.preventDefault();
-    runCommand(dom.commandInput.value, 'typed');
-  });
-
-  dom.voiceButton.addEventListener('click', async () => {
-    try {
-      const engine = await ensureSpeechEngine();
-      if (engine.isListening) engine.stop();
-      else engine.start();
-    } catch (error) {
-      showToast(error.message, 'error');
-    }
-  });
-
-  dom.engineSelect.addEventListener('change', () => {
-    if (speechEngine?.isListening) speechEngine.stop();
-    speechEngine = null;
-    activeSpeechType = null;
-    dom.engineDot.className = 'signal-dot ready';
-    dom.engineLabel.textContent = 'STANDBY';
-    dom.engineDetail.textContent = engineDescriptions[dom.engineSelect.value];
-  });
-
-  document.getElementById('zoom-in').addEventListener('click', () => mapController?.zoomIn());
-  document.getElementById('zoom-out').addEventListener('click', () => mapController?.zoomOut());
-  document.getElementById('reset-view').addEventListener('click', () => mapController?.goTo(currentScenario.center, currentScenario.zoom, currentScenario.title));
-  document.getElementById('locate-me').addEventListener('click', () => {
-    mapController?.addMarkerAtCurrentLocation()
-      .then(() => showToast('Current position added to the operational picture.', 'success'))
-      .catch((error) => showToast(error.message, 'error'));
-  });
-
-  document.getElementById('copy-intent').addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(dom.compiledIntent.textContent);
-      showToast('Compiled intent copied.', 'success');
-    } catch {
-      showToast('Clipboard access is unavailable.', 'warning');
-    }
-  });
-
-  document.getElementById('export-log').addEventListener('click', () => {
-    downloadFile(tracker.exportJSON(), 'voicegis-atlas-session.json', 'application/json');
-  });
-
-  document.getElementById('tour-button').addEventListener('click', runProductTour);
-  document.getElementById('telemetry-button').addEventListener('click', () => setDrawer(true));
-  dom.telemetryClose.addEventListener('click', () => setDrawer(false));
-  dom.drawerBackdrop.addEventListener('click', () => {
-    setDrawer(false);
-    closeMobilePanels();
-  });
-
-  document.querySelectorAll('[data-open-panel]').forEach((button) => {
-    button.addEventListener('click', () => {
-      openMobilePanel(button.dataset.openPanel, button);
-    });
-  });
-
-  document.querySelectorAll('[data-close-panel]').forEach((button) => {
-    button.addEventListener('click', closeMobilePanels);
-  });
-
-  document.getElementById('mobile-command').addEventListener('click', () => {
-    closeMobilePanels();
-    dom.commandInput.focus();
-  });
-
-  document.addEventListener('keydown', (event) => {
-    if (event.key === '/' && document.activeElement !== dom.commandInput) {
+  return new Promise((resolve) => {
+    const finish = (accepted) => {
+      accept.removeEventListener('click', onAccept);
+      cancel.removeEventListener('click', onCancel);
+      dialog.removeEventListener('cancel', onEscape);
+      if (dialog.open) dialog.close();
+      resolve(accepted);
+    };
+    const onAccept = () => finish(true);
+    const onCancel = () => finish(false);
+    const onEscape = (event) => {
       event.preventDefault();
-      dom.commandInput.focus();
+      finish(false);
+    };
+
+    accept.addEventListener('click', onAccept);
+    cancel.addEventListener('click', onCancel);
+    dialog.addEventListener('cancel', onEscape);
+    dialog.showModal();
+  });
+}
+
+async function runCommand(text) {
+  const input = String(text || '').trim();
+  if (!input || state.busy) return;
+
+  state.busy = true;
+  setPlanStatus('running');
+  $('run-button').disabled = true;
+  setPipeline({ ...PIPELINE_IDLE, compile: 'active' }, 'compiling');
+
+  try {
+    const plan = await state.core.compile(input);
+    renderPlan(plan);
+
+    const { states, note } = pipelineFromPlan(plan);
+    setPipeline(states, note);
+
+    if (plan.status === PLAN_STATUS.NEEDS_INPUT || plan.status === PLAN_STATUS.BLOCKED) {
+      return;
     }
-    if (event.key === 'Escape') {
-      setDrawer(false);
-      closeMobilePanels();
+
+    const receipt = await state.core.execute(plan, { confirm: confirmOperation });
+    renderReceipt(receipt);
+
+    // Anything that fails inside an adapter is an Execute failure, whatever
+    // the earlier stages said.
+    const executed = receipt.status === 'succeeded' ? 'done'
+      : receipt.status === 'cancelled' ? 'skipped' : 'failed';
+    setPipeline({ ...states, execute: executed }, receipt.status);
+
+    const selected = state.data.getFeatures('earthquakes', { scope: 'selected' });
+    if (selected.length > 0) fitToResult(selected);
+    else if (state.data.getState().layers.earthquakes.filter) {
+      fitToResult(state.data.getFeatures('earthquakes'));
+    }
+  } catch (error) {
+    console.error(error);
+    setPlanStatus('failed');
+    setPipeline({ ...PIPELINE_IDLE, compile: 'failed' }, 'failed');
+    toast(error.message, 'error');
+  } finally {
+    state.busy = false;
+    $('run-button').disabled = false;
+  }
+}
+
+/* ----------------------------------------------------------------- voice */
+
+function initVoice() {
+  const supported = 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
+  if (!supported) return;
+
+  const button = $('mic-button');
+  button.hidden = false;
+
+  const engine = new WebSpeechEngine({
+    onResult: (transcript, isFinal) => {
+      $('command-input').value = transcript;
+      if (isFinal) {
+        engine.stop();
+        runCommand(transcript);
+      }
+    },
+    onStart: () => { button.dataset.listening = 'true'; },
+    onEnd: () => { button.dataset.listening = 'false'; },
+    onError: (error) => toast(error.message, 'error'),
+  });
+
+  button.addEventListener('click', async () => {
+    try {
+      if (!engine.isInitialized) await engine.init();
+      engine.toggle();
+    } catch (error) {
+      toast(error.message, 'error');
     }
   });
 
-  window.addEventListener('online', updateOnlineStatus);
-  window.addEventListener('offline', updateOnlineStatus);
-  mobileLayout.addEventListener('change', () => {
-    closeMobilePanels({ restoreFocus: false });
-    syncMobilePanelAccessibility();
-  });
-  syncMobilePanelAccessibility();
+  state.speech = engine;
+}
+
+/* ---------------------------------------------------------------- chrome */
+
+function toast(message, type = 'info') {
+  const node = el('div', 'toast', message);
+  node.dataset.type = type;
+  $('toasts').appendChild(node);
+  setTimeout(() => node.remove(), 4200);
+}
+
+function downloadExport({ content, filename, mimeType }) {
+  const url = URL.createObjectURL(new Blob([content], { type: mimeType }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+  toast(`Saved ${filename}`);
 }
 
 function registerServiceWorker() {
-  if (!('serviceWorker' in navigator)) return;
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch((error) => {
-      console.warn('[VoiceGIS] Service worker unavailable:', error.message);
-    });
-  }, { once: true });
+  if (!('serviceWorker' in navigator) || window.location.protocol === 'http:') return;
+  navigator.serviceWorker.register('./sw.js').catch(() => { /* offline support is optional */ });
 }
 
-function bootstrap() {
-  updateOnlineStatus();
-  bindEvents();
-  initWaveform();
-  initMap(MAP_ENGINE.LEAFLET);
-  activateScenario('monsoon', { silent: true, fly: false });
-  updateSessionMetrics();
+/* ------------------------------------------------------------------ boot */
+
+async function boot() {
+  initMap();
+  initTabs();
+  renderPermissions();
+  renderChips();
+  renderPlaces();
+  setPipeline(PIPELINE_IDLE, 'waiting for a request');
+
+  const { data: quakes, live, generated } = await loadEarthquakes();
+
+  state.data = createGeoJSONAdapter({
+    layers: { earthquakes: quakes, cities: CITIES },
+    catalog: CATALOG,
+    onChange: renderMap,
+    onExport: downloadExport,
+  });
+
+  buildQuakeMarkers(quakes);
+  buildCityMarkers(CITIES);
+  buildCore();
+
+  renderCatalog({
+    earthquakes: quakes.features.length,
+    cities: CITIES.features.length,
+  });
+  renderMap(state.data.getState());
+
+  $('source-dot').dataset.state = live ? 'live' : 'offline';
+  $('source-label').textContent = live
+    ? `Live USGS feed · ${formatNumber(quakes.features.length)} earthquakes`
+    : `Offline sample · ${formatNumber(quakes.features.length)} earthquakes`;
+  $('source-detail').textContent = live
+    ? `magnitude 2.5+, past 30 days${generated ? ` · updated ${new Date(generated).toUTCString().slice(5, 22)} UTC` : ''}`
+    : 'bundled snapshot — live feed unreachable';
+
+  $('command-form').addEventListener('submit', (event) => {
+    event.preventDefault();
+    runCommand($('command-input').value);
+  });
+
+  // A suggested place should be one click away, not a retype.
+  $('plan-issues').addEventListener('click', (event) => {
+    const button = event.target.closest('.suggestion');
+    if (!button) return;
+    const command = `go to ${button.dataset.place}`;
+    $('command-input').value = command;
+    runCommand(command);
+  });
+
+  initVoice();
   registerServiceWorker();
 
-  window.setTimeout(() => {
-    dom.app.classList.add('ready');
-    dom.bootScreen.classList.add('complete');
-    dom.bootScreen.hidden = true;
-    showToast('VoiceGIS Atlas online. Type a command or run the guided tour.', 'success');
-  }, 650);
+  // Inspection hook. This demo is a reference implementation, so being able to
+  // read its live map, adapter state, and compiled plans from the console (or
+  // from an end-to-end test) is part of what it is for.
+  window.voicegis = {
+    get map() { return state.map; },
+    get adapter() { return state.data; },
+    get core() { return state.core; },
+    view() {
+      const center = state.map.getCenter();
+      return { lat: center.lat, lng: center.lng, zoom: state.map.getZoom() };
+    },
+  };
+
+  document.body.dataset.ready = 'true';
+  $('command-input').focus();
 }
 
-bootstrap();
-
-window.addEventListener('beforeunload', () => {
-  if (waveformFrame) cancelAnimationFrame(waveformFrame);
-  if (speechEngine?.isListening) speechEngine.stop();
+boot().catch((error) => {
+  console.error('[VoiceGIS demo] failed to start', error);
+  toast(`Failed to start: ${error.message}`, 'error');
 });

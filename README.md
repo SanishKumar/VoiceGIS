@@ -4,11 +4,18 @@
 
   <p>
     <a href="https://www.npmjs.com/package/voicegis"><img src="https://img.shields.io/npm/v/voicegis" alt="npm version"></a>
-    <a href="https://voicemap-three.vercel.app/"><img src="https://img.shields.io/badge/live-VoiceGIS_Atlas-ff6b35" alt="Live VoiceGIS Atlas demo"></a>
+    <a href="https://voicemap-three.vercel.app/"><img src="https://img.shields.io/badge/live-demo-ff6b35" alt="Live demo"></a>
     <a href="https://github.com/SanishKumar/VoiceGIS/actions"><img src="https://img.shields.io/github/actions/workflow/status/SanishKumar/VoiceGIS/ci.yml?label=tests" alt="Test status"></a>
     <img src="https://img.shields.io/badge/runtime_dependencies-0-1f8a70" alt="Zero runtime dependencies">
     <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license">
   </p>
+</div>
+
+<div align="center">
+  <a href="https://voicemap-three.vercel.app/">
+    <img src="docs/media/demo.gif" alt="Filtering, navigating and blocking a command in the VoiceGIS demo" width="800">
+  </a>
+  <p><em>Live USGS earthquake data. A request is compiled, grounded against the catalog, checked against the policy, and only then executed — <a href="https://voicemap-three.vercel.app/">try it</a>.</em></p>
 </div>
 
 VoiceGIS Core turns typed or spoken GIS requests into deterministic, inspectable operations that an existing application can safely execute.
@@ -38,7 +45,7 @@ VoiceGIS does not generate SQL, take ownership of your map, or require a particu
 - **Human checkpoints:** exports, edits, analysis, and other configured operations can require explicit confirmation.
 - **Capability contracts:** unsupported commands fail during preflight instead of halfway through a workflow.
 - **Auditable results:** every run returns a per-operation receipt and can emit lifecycle events.
-- **No hidden network calls:** Core's geocoding is disabled unless the application explicitly enables and supplies it.
+- **No hidden network calls:** Core's geocoding is disabled unless the application explicitly enables and supplies it, and navigation resolves against a gazetteer you own.
 - **Zero runtime dependencies:** the headless core works in browsers, Node.js services, workers, React, Vue, and other JavaScript environments.
 
 ## Install
@@ -231,11 +238,83 @@ Every compile result is serializable:
 
 Adapters receive the plan's typed objects and decide how to translate them to ArcGIS query parameters, Mapbox expressions, OpenLayers filters, PostGIS service requests, local GeoJSON operations, or another application API. VoiceGIS intentionally does not hide those application-specific choices.
 
+## Adapters you can use today
+
+`voicegis/adapters` ships working implementations so a compiled plan does real work before you write an integration.
+
+**GeoJSON** — executes filters, selections, geodesic proximity queries, counts, buffers, and exports against in-memory feature collections. It owns query state and emits a snapshot after every mutation; it never touches your map.
+
+```js
+import { createGeoJSONAdapter } from 'voicegis/adapters';
+
+const adapter = createGeoJSONAdapter({
+  layers: { parcels, hydrants },
+  catalog,
+  onChange: (state) => render(state),
+});
+```
+
+**OGC API - Features** — translates the predicate AST to CQL2-Text and sends it as the standard `filter` parameter:
+
+```js
+const adapter = createOgcApiFeaturesAdapter({
+  baseUrl: 'https://example.org/ogc',
+  collections: { incidents: 'emergency_incidents' },
+  catalog,
+});
+
+// { field: 'mag', operator: 'gt', value: 5 }
+//   → GET /collections/quakes/items?filter=mag%20%3E%205&filter-lang=cql2-text
+```
+
+Both refuse rather than guess: unknown units, unsupported relations, and unresolvable references throw so the executor records a failed operation instead of putting a wrong answer on a map. The OGC adapter does not claim `analysis.buffer`, because OGC API - Features has no standard geometry-processing endpoint — so a buffer command fails preflight rather than halfway through.
+
+The OGC adapter needs a service conforming to OGC API - Features Part 3 (Filtering) and CQL2-Text; it pages by following the service's own `rel="next"` link and reports `truncated` rather than pretending a page-bounded result is complete. Proximity is expressed as intersection with a buffer polygon, which is a [bounded approximation, not an exact distance test](docs/adapters.md#proximity-queries-are-bounded-approximations).
+
+`composeAdapters(data, view)` puts a data adapter and a map adapter behind one contract while keeping combined capabilities accurate.
+
+See the [adapters guide](docs/adapters.md).
+
+## Navigation without a geocoder
+
+"Go to Delhi" should not mean an uncontrolled call to a third-party service. `createPlaceResolver` answers navigation from a place list your application owns:
+
+```js
+import { createPlaceResolver, createVoiceGISCore } from 'voicegis/core';
+
+const gis = createVoiceGISCore({
+  catalog,
+  adapter,
+  resolvers: [createPlaceResolver({
+    places: [
+      { id: 'india', name: 'India', kind: 'country', bounds: [[6.55, 68.11], [35.67, 97.4]] },
+      { id: 'delhi', name: 'Delhi', kind: 'city', center: [28.7041, 77.1025], zoom: 9 },
+    ],
+  })],
+});
+```
+
+Cities resolve to a centre; countries and regions resolve to bounds, so an adapter frames the whole extent instead of dropping a pin in the middle of it. A place that is not on the list returns `needs_input` with ranked suggestions rather than a guess:
+
+```js
+const plan = await gis.compile('go to Atlantis');
+plan.issues[0];
+// {
+//   code: 'unknown_place',
+//   severity: 'input',
+//   message: '"atlantis" is not a known place. Did you mean Athens, Alaska, Santiago?',
+//   details: { suggestions: ['Athens', 'Alaska', 'Santiago'], suggestionKind: 'did_you_mean' },
+// }
+```
+
+Matching tolerates the transpositions that dominate spoken and typed place names, so `"Dehli"` resolves to Delhi. No network request is made at any point.
+
 ## Package entry points
 
 | Import | Purpose |
 |---|---|
 | `voicegis/core` | Headless compiler, catalog, policy, adapter, and executor |
+| `voicegis/adapters` | GeoJSON and OGC API - Features execution adapters, CQL2 translation |
 | `voicegis/parser` | Legacy navigation and built-in map command parser |
 | `voicegis/engines` | Optional Web Speech, Whisper, TF.js, and server transcription clients |
 | `voicegis/map` | Legacy Leaflet/OpenLayers map-controller adapters |
@@ -264,26 +343,81 @@ app.start();
 
 It is retained for backward compatibility. New production integrations should prefer `voicegis/core` so the host application keeps ownership of its map, data, permissions, and transcription UX.
 
+## The demo
+
+The [live demo](https://voicemap-three.vercel.app/) runs against the USGS feed of magnitude 2.5+ earthquakes from the past 30 days — real data, not a simulation. The counts on screen come from evaluating the compiled predicate against the features the map is drawing.
+
+It is worth opening for three things:
+
+- **The plan panel.** Every request shows its compiled operations with the catalog labels they resolved to, the permission each needs, and the result each produced.
+- **The permission toggles.** Switch off `export`, ask for an export, and watch the command get blocked with a reason before anything runs.
+- **The pipeline.** Compile → Ground → Authorize → Execute, showing exactly which stage a request stopped at and why.
+
+Run it locally:
+
+```bash
+npm install
+npm run dev
+```
+
+The demo lives in [`demo/`](demo/) and is a working reference integration: catalog, policy, confirmation dialog, execution receipts, and the GeoJSON adapter, in about 900 lines. Regenerate the animation above with `node scripts/record-demo.mjs`.
+
 ## Documentation
 
 - [VoiceGIS Core guide](docs/core.md)
+- [Adapters guide](docs/adapters.md)
 - [API reference](docs/api.md)
 - [Runnable package example](examples/package-command-core.js)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Next.js + Leaflet recipe](docs/recipes/nextjs-leaflet-dashboard.md)
 - [Electron offline recipe](docs/recipes/electron-offline-kiosk.md)
-- [VoiceGIS Atlas live demo](https://voicemap-three.vercel.app/)
+- [Live demo](https://voicemap-three.vercel.app/) — compiles requests against live USGS earthquake data
 
 ## Development
 
 ```bash
-npm test -- --runInBand
+npm test -- --runInBand   # unit tests
+npm run test:e2e          # end-to-end suite (no external network required)
 npm run lint
 npm run evaluate
 npm run build
 ```
 
+The end-to-end suite drives Chrome through Playwright. Locally it uses the
+installed Chrome so no browser bundle is downloaded; CI installs Playwright's
+Chromium and sets `PLAYWRIGHT_BROWSER=chromium`. Every request the demo makes
+is answered from a fixture, and anything outside the preview origin is blocked
+and fails the run — so the suite passes with outbound networking disabled.
+
+`npm run test:live-ogc` is an opt-in integration check that runs the OGC
+adapter against a public ldproxy service. It needs the internet and is skipped
+by the normal `npm test` run.
+
 The release guard runs tests, lint, the ESM/CommonJS builds, and declaration generation before publishing.
+
+### Known advisory: sharp via @huggingface/transformers
+
+`npm audit` reports two high-severity findings for `sharp` (< 0.35.0,
+GHSA-f88m-g3jw-g9cj). They are worth understanding rather than working around:
+
+- `sharp` is not a dependency of the published package. VoiceGIS ships **zero
+  runtime dependencies**, which `npm run validate:package` enforces. It arrives
+  only through `@huggingface/transformers`, a devDependency and an *optional*
+  peer dependency for the Whisper engine.
+- The latest `@huggingface/transformers` (4.2.0) pins `sharp: ^0.34.5`. That
+  range cannot reach the fixed 0.35.0, and 0.34.5 is the last 0.34 release, so
+  there is no non-forced upgrade. Overriding it would push an untested major
+  onto that package.
+- `sharp` is a native **image** library used by the transformers image
+  pipelines. VoiceGIS only uses transformers for audio transcription and never
+  reaches that code. The browser path uses `onnxruntime-web`, not `sharp`, and
+  the demo bundle contains neither.
+
+The exposure is therefore contributors running `npm install` in this repo, and
+consumers who explicitly opt into the Whisper peer dependency on Node. Removing
+the devDependency would drop `sharp` entirely, but the Whisper unit tests mock
+the module by specifier and `tsc` resolves it for declarations, so it needs a
+module stub for both first — tracked, not yet done.
 
 ## Scope and limitations
 
