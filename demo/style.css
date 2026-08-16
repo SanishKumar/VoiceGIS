@@ -1030,11 +1030,16 @@ body {
   .app { height: auto; min-height: 100%; grid-template-rows: auto auto auto; }
   .workspace { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto; }
 
-  /* The map has to leave room for the pipeline and permissions strips *and*
-     the sticky command bar. At 812px tall that is roughly 120 (topbar) + 185
-     (strips) + 115 (console), so the map gets what remains rather than a
-     fraction of the viewport that pushes the controls under the bar. */
-  .map-panel { height: min(44vh, 360px); min-height: 240px; }
+  /* The map takes whatever is left once the topbar, the fixed strips and the
+     command bar have their space. That leftover is measured at runtime and
+     published as --mobile-map-height, because guessing it from a viewport
+     fraction only works for one set of font metrics: a renderer that lays the
+     topbar out a few pixels taller pushes the tab bar under the command bar.
+     The fraction below is a pre-measurement fallback only. */
+  .map-panel {
+    height: var(--mobile-map-height, min(44vh, 360px));
+    min-height: 200px;
+  }
 
   .side {
     border-left: 0;

@@ -263,6 +263,43 @@ test('the command bar clears the panel controls at every scroll position', async
   }
 });
 
+test('the mobile layout survives taller text metrics', async ({ page }) => {
+  // A different platform or font stack lays the topbar and the strips out
+  // taller than the machine this was designed on. Reserving space for them by
+  // assuming a viewport fraction passes locally and overlaps in CI, so inflate
+  // the chrome deliberately and require the layout to still hold.
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.addStyleTag({
+    content: `
+      .topbar, .strip, .console, .tabs { font-size: 120% !important; }
+      .brand-text strong { font-size: 21px !important; }
+      .source-text strong { font-size: 16px !important; }
+      .source-text small { font-size: 15px !important; }
+      .perm { padding: 9px 15px !important; }
+      .pl-name { font-size: 14px !important; }
+    `,
+  });
+  await page.evaluate(() => window.dispatchEvent(new Event('resize')));
+  await page.waitForTimeout(400);
+
+  const box = await rects(page, {
+    console: '.console',
+    pipeline: '#pipeline',
+    permissions: '#permissions',
+    tabs: '.tabs',
+  });
+
+  expectNoOverlap(box.tabs, box.console, 'tabs must clear the command bar with taller text');
+  expectNoOverlap(box.permissions, box.console,
+    'permissions must clear the command bar with taller text');
+  expectNoOverlap(box.pipeline, box.console,
+    'the pipeline must clear the command bar with taller text');
+
+  // The map must still be usable rather than collapsed to nothing.
+  const map = await rects(page, { panel: '.map-panel' });
+  expect(map.panel.height).toBeGreaterThanOrEqual(200);
+});
+
 test('the last panel content can be scrolled clear of the command bar', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await page.click('#tab-catalog');

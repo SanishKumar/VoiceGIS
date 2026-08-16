@@ -333,6 +333,9 @@ function initMap() {
   // desktop one, so derive the floor from the viewport instead of fixing it.
   let resizeTimer = null;
   window.addEventListener('resize', () => {
+    // Height first and undebounced: the layout must be correct immediately,
+    // even if the map's own resize work can wait.
+    fitMobileMapHeight();
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
       map.invalidateSize();
@@ -340,6 +343,32 @@ function initMap() {
       else map.setMinZoom(worldZooms().contain);
     }, 180);
   });
+}
+
+/** Below this width the layout stacks and the command bar becomes sticky. */
+const MOBILE_QUERY = '(max-width: 900px)';
+
+/**
+ * Give the map exactly the height left over on a stacked layout.
+ *
+ * The topbar, the pipeline and permissions strips, and the command bar all
+ * size themselves from their content, and that content measures differently
+ * across platforms and font stacks. Reserving space for them by assuming a
+ * viewport fraction works on one machine and quietly overlaps the tab bar with
+ * the command bar on another, so measure instead of assume.
+ */
+function fitMobileMapHeight() {
+  const root = document.documentElement;
+  if (!window.matchMedia(MOBILE_QUERY).matches) {
+    root.style.removeProperty('--mobile-map-height');
+    return;
+  }
+
+  const heightOf = (selector) => document.querySelector(selector)?.offsetHeight ?? 0;
+  const chrome = heightOf('.topbar') + heightOf('.side-fixed') + heightOf('.console');
+  const available = window.innerHeight - chrome - 12; // a little breathing room
+
+  root.style.setProperty('--mobile-map-height', `${Math.max(200, Math.round(available))}px`);
 }
 
 /**
@@ -1116,6 +1145,13 @@ async function boot() {
 
   initVoice();
   registerServiceWorker();
+
+  // Now that every band has its real content — including the source chip,
+  // which wraps to a third row on narrow screens — size the map from what is
+  // actually left, then re-fit the world to the corrected viewport.
+  fitMobileMapHeight();
+  state.map.invalidateSize();
+  showWholeWorld();
 
   // Inspection hook. This demo is a reference implementation, so being able to
   // read its live map, adapter state, and compiled plans from the console (or
