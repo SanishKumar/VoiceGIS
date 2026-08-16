@@ -423,7 +423,14 @@ module stub for both first — tracked, not yet done.
 
 VoiceGIS Core is a deterministic command compiler, not a general conversational model. A catalog must define application concepts, and an adapter must implement application behavior. Ambiguous commands return `needs_input`; forbidden commands return `blocked`. The package never silently invents a field, executes generated SQL, or grants itself a permission.
 
-The package is currently a beta. Operation and plan versions are included so integrations can validate contracts as the API evolves.
+The compiler, catalog, policy, executor, and plan schema are stable, and every plan carries an operation and schema version so integrations can validate the contract they were built against.
+
+Two areas are newer than the rest and may still change within 2.x:
+
+- **The OGC API - Features adapter** has been validated against one conformant service. The CQL2 it emits follows the specification and its [conformance requirements are documented](docs/adapters.md#required-service-conformance), but its options may need to change as more implementations are tested.
+- **`createPlaceResolver`** covers navigation phrasings and gazetteer shapes that will likely grow.
+
+The GeoJSON adapter, and everything under `voicegis/core`, are not expected to change in a breaking way before 3.0.
 
 ## License
 

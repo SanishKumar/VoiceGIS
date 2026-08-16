@@ -100,6 +100,12 @@ point-to-boundary cases and the standard approximation otherwise.
 
 ## OGC API - Features adapter
 
+> **Experimental.** This adapter has been validated end to end against one
+> conformant service (ldproxy). The CQL2 it emits follows the specification and
+> the conformance it needs is listed below, but implementations vary in what
+> they accept, and its options may change within 2.x as more are tested. Check
+> `/conformance` before relying on it, and please report what you find.
+
 Translates predicates to CQL2-Text and sends them as the standard `filter`
 parameter defined by OGC API - Features Part 3.
 

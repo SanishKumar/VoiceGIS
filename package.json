@@ -1,6 +1,6 @@
 {
   "name": "voicegis",
-  "version": "2.2.0-beta.0",
+  "version": "2.2.0",
   "description": "Policy-aware natural-language GIS command compiler and execution toolkit",
   "main": "dist/voicegis.umd.cjs",
   "module": "dist/voicegis.es.js",
