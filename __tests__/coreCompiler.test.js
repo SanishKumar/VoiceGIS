@@ -272,3 +272,92 @@ describe('SpatialCommandCompiler', () => {
     ]);
   });
 });
+
+/**
+ * Regressions for cases the compiler used to accept while quietly producing
+ * the wrong plan. A refusal is a fine outcome here; a confident wrong answer
+ * is not, because the whole design rests on never inventing meaning.
+ */
+describe('silent wrong answers', () => {
+  const compiler = new SpatialCommandCompiler({
+    catalog: catalogDefinition,
+    policy: CommandPolicy.permissive(),
+  });
+
+  test('a layer conjunction toggles every layer named, not just the first', async () => {
+    const plan = await compiler.compile('show parcels and hospitals');
+
+    expect(plan.status).toBe(PLAN_STATUS.READY);
+    expect(plan.operations).toHaveLength(2);
+    expect(plan.operations.map((operation) => operation.target.layerId))
+      .toEqual(['parcels', 'hospitals']);
+    expect(plan.operations.every((operation) => operation.args.visible === true)).toBe(true);
+  });
+
+  test('a comma-separated list is handled the same way', async () => {
+    const plan = await compiler.compile('hide parcels, hospitals');
+
+    expect(plan.operations).toHaveLength(2);
+    expect(plan.operations.every((operation) => operation.args.visible === false)).toBe(true);
+  });
+
+  test('a half-known layer list is refused rather than partly applied', async () => {
+    const plan = await compiler.compile('show parcels and hydrants');
+
+    expect(plan.status).toBe(PLAN_STATUS.NEEDS_INPUT);
+    expect(plan.operations).toHaveLength(0);
+    const issue = plan.issues.find((candidate) => candidate.code === 'unknown_layer');
+    expect(issue.details.unresolved).toEqual(['hydrants']);
+  });
+
+  test('an operation that takes one layer refuses a list', async () => {
+    const plan = await compiler.compile('count parcels and incidents');
+
+    expect(plan.status).toBe(PLAN_STATUS.NEEDS_INPUT);
+    const issue = plan.issues.find((c) => c.code === 'ambiguous_layer_list');
+    expect(issue.details.layerIds).toEqual(['parcels', 'incidents']);
+  });
+
+  test('a condition over a layer list is refused, not attached to one of them', async () => {
+    const plan = await compiler.compile('show parcels and hospitals where zoning is retail');
+
+    expect(plan.status).toBe(PLAN_STATUS.NEEDS_INPUT);
+    expect(plan.operations).toHaveLength(0);
+    expect(plan.issues.some((c) => c.code === 'ambiguous_layer_list')).toBe(true);
+  });
+
+  test('a text field keeps a value that begins with digits', async () => {
+    const plan = await compiler.compile('filter parcels where zoning is 5 star retail');
+
+    expect(plan.status).toBe(PLAN_STATUS.READY);
+    expect(plan.operations[0].args.predicate).toEqual({
+      type: 'comparison',
+      field: 'zoning',
+      operator: 'eq',
+      value: '5 star retail',
+    });
+  });
+
+  test('an unrecognized trailing word on a number is refused, not treated as a unit', async () => {
+    const plan = await compiler.compile('count incidents where severity is greater than 5 bananas');
+
+    expect(plan.status).toBe(PLAN_STATUS.NEEDS_INPUT);
+    const issue = plan.issues.find((candidate) => candidate.code === 'unknown_unit');
+    expect(issue.details.suffix).toBe('bananas');
+  });
+
+  test('a unit of the wrong dimension is refused while compiling', async () => {
+    const plan = await compiler.compile('filter parcels where area is greater than 2 kilometers');
+
+    expect(plan.status).toBe(PLAN_STATUS.NEEDS_INPUT);
+    const issue = plan.issues.find((candidate) => candidate.code === 'incompatible_unit');
+    expect(issue.details).toMatchObject({ fieldUnit: 'hectare', spokenUnit: 'kilometer' });
+  });
+
+  test('a compatible unit still compiles and is carried through', async () => {
+    const plan = await compiler.compile('filter parcels where area is greater than 2 acres');
+
+    expect(plan.status).toBe(PLAN_STATUS.READY);
+    expect(plan.operations[0].args.predicate).toMatchObject({ value: 2, unit: 'acre' });
+  });
+});

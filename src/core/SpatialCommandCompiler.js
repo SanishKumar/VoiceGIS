@@ -95,20 +95,105 @@ function targetForLayer(layer) {
   return { kind: 'layer', layerId: layer.id };
 }
 
+/**
+ * Words that may surround a layer name without changing which layer is meant.
+ */
+const LAYER_FILLER_WORDS = new Set([
+  'the', 'a', 'an', 'all', 'any',
+  'layer', 'layers', 'feature', 'features', 'record', 'records', 'data',
+]);
+
+/** Split "hospitals and schools" or "roads, rail" into candidate layer names. */
+function splitLayerList(value) {
+  return normalizeText(value)
+    .split(/\s*,\s*|\s+and\s+|\s+&\s+/i)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Whether a matched catalog name accounts for the whole phrase.
+ *
+ * `SpatialCatalog.findLayer` scans free text and returns the longest name it
+ * can see, which is right for "is any layer mentioned here" and wrong as a
+ * resolution fallback: given "hospitals and schools" it happily returns
+ * hospitals and the rest of the phrase disappears without a word.
+ */
+function nameCoversPhrase(phrase, matchedName) {
+  const leftover = normalizeText(phrase)
+    .toLowerCase()
+    .replace(new RegExp(`\\b${escapeRegExp(matchedName.toLowerCase())}\\b`), ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+    .filter((word) => !LAYER_FILLER_WORDS.has(word));
+  return leftover.length === 0;
+}
+
+const LENGTH_UNITS = new Set(['meter', 'kilometer', 'mile', 'foot']);
+const AREA_UNITS = new Set(['hectare', 'acre', 'square_meter', 'square_foot']);
+
+function unitDimension(unit) {
+  if (LENGTH_UNITS.has(unit)) return 'length';
+  if (AREA_UNITS.has(unit)) return 'area';
+  return null;
+}
+
+/**
+ * Turn the right-hand side of a condition into a typed literal.
+ *
+ * The catalog's declared field type leads. Without it, `"5 star retail"` on a
+ * text field parses as the number five carrying the unit "star retail", which
+ * then matches nothing and reports success — a wrong answer with no warning.
+ */
 function parseScalar(rawValue, field) {
-  let raw = normalizeText(rawValue).replace(/^["']|["']$/g, '');
+  const raw = normalizeText(rawValue).replace(/^["']|["']$/g, '');
+
+  if (/^(null|none|empty)$/i.test(raw)) return { value: null };
+
+  // A field the catalog calls text stays text, digits or not.
+  if (field?.type === 'string') return { value: raw };
+
   if (/^(true|yes)$/i.test(raw)) return { value: true };
   if (/^(false|no)$/i.test(raw)) return { value: false };
-  if (/^(null|none|empty)$/i.test(raw)) return { value: null };
 
   const numeric = raw.match(/^(-?\d+(?:\.\d+)?)\s*(.*)$/);
   if (numeric) {
+    const value = Number(numeric[1]);
     const suffix = normalizeText(numeric[2]).toLowerCase();
-    const unit = UNIT_ALIASES[suffix] || (suffix || field?.unit || null);
-    return {
-      value: Number(numeric[1]),
-      ...(unit ? { unit } : {}),
-    };
+
+    if (!suffix) return field?.unit ? { value, unit: field.unit } : { value };
+
+    const unit = UNIT_ALIASES[suffix];
+    if (!unit) {
+      // A declared number with an unrecognized trailing word is a
+      // mis-transcription, not a unit. Say so instead of inventing one.
+      if (field?.type === 'number') {
+        return {
+          issue: {
+            code: 'unknown_unit',
+            severity: 'input',
+            message: `"${suffix}" is not a unit this compiler recognizes.`,
+            details: { suffix, value, field: field.id },
+          },
+        };
+      }
+      // Type undeclared: safest reading is that the whole thing is a label.
+      return { value: raw };
+    }
+
+    if (field?.unit && unitDimension(unit) !== unitDimension(field.unit)) {
+      return {
+        issue: {
+          code: 'incompatible_unit',
+          severity: 'input',
+          message: `Field "${field.id}" is measured in ${field.unit}, which cannot be `
+            + `compared with ${unit}.`,
+          details: { field: field.id, fieldUnit: field.unit, spokenUnit: unit },
+        },
+      };
+    }
+
+    return { value, unit };
   }
   return { value: raw };
 }
@@ -400,24 +485,62 @@ export class SpatialCommandCompiler {
       if (!condition && /\s+where\s+/i.test(layerPhrase)) {
         [layerPhrase, condition] = layerPhrase.split(/\s+where\s+/i, 2);
       }
-      const layerMatch = this.catalog.resolveLayer(layerPhrase) || this.catalog.findLayer(layerPhrase);
-      if (layerMatch) {
+      const { layers, unresolved } = this._resolveLayerPhrase(layerPhrase);
+
+      // Nothing here is a catalog layer, so let the legacy parser try: this is
+      // also how "show satellite" reaches the basemap handler.
+      if (layers.length > 0) {
+        if (unresolved.length > 0) {
+          return {
+            operations: [],
+            issues: [{
+              code: 'unknown_layer',
+              severity: 'input',
+              message: `Layer${unresolved.length > 1 ? 's' : ''} `
+                + `${unresolved.map((name) => `"${name}"`).join(' and ')} `
+                + `${unresolved.length > 1 ? 'are' : 'is'} not in the spatial catalog.`,
+              details: { value: normalizeText(layerPhrase), unresolved },
+            }],
+          };
+        }
+
         const visible = !/^(hide|remove|disable|turn\s+off)$/i.test(show[1]);
         /** @type {Array<object>} */
-        const operations = [{
+        const operations = layers.map((entry) => ({
           type: OPERATION.LAYER_VISIBILITY,
-          target: targetForLayer(layerMatch.layer),
+          target: targetForLayer(entry.layer),
           args: { visible },
-          confidence: layerMatch.score,
-        }];
+          confidence: entry.score,
+        }));
+
         if (condition) {
-          const predicateResult = this._parsePredicate(condition, layerMatch.layer);
+          // "show a and b where …" gives no way to know which layer the
+          // condition belongs to, so ask rather than pick one.
+          if (layers.length > 1) {
+            return {
+              operations: [],
+              issues: [{
+                code: 'ambiguous_layer_list',
+                severity: 'input',
+                message: `A condition can only apply to one layer, but `
+                  + `"${normalizeText(layerPhrase)}" names ${layers.length}. `
+                  + 'Filter them one at a time.',
+                details: {
+                  value: normalizeText(layerPhrase),
+                  layerIds: layers.map((entry) => entry.layer.id),
+                },
+              }],
+            };
+          }
+
+          const [only] = layers;
+          const predicateResult = this._parsePredicate(condition, only.layer);
           if (predicateResult.issue) return { operations, issues: [predicateResult.issue] };
           operations.push({
             type: OPERATION.QUERY_FILTER,
-            target: targetForLayer(layerMatch.layer),
+            target: targetForLayer(only.layer),
             args: { predicate: predicateResult.predicate },
-            confidence: Math.min(layerMatch.score, predicateResult.score),
+            confidence: Math.min(only.score, predicateResult.score),
           });
         }
         return { operations, issues: [] };
@@ -522,17 +645,73 @@ export class SpatialCommandCompiler {
     return { target: targetForLayer(layerResult.layer), score: layerResult.score };
   }
 
+  /**
+   * Resolve a single layer name, refusing a match that only covers part of it.
+   * @returns {{layer:object, score:number}|null}
+   */
+  _resolveOneLayer(value) {
+    const direct = this.catalog.resolveLayer(value);
+    if (direct) return { layer: direct.layer, score: direct.score };
+
+    const found = this.catalog.findLayer(value);
+    if (found && nameCoversPhrase(value, found.matched)) {
+      return { layer: found.layer, score: found.score };
+    }
+    return null;
+  }
+
+  /**
+   * Resolve a phrase that may name several layers.
+   *
+   * Returns every layer named, or an issue identifying the parts that could
+   * not be resolved. A phrase is never partly accepted: dropping half of
+   * "hospitals and schools" and reporting success is worse than asking.
+   *
+   * @returns {{layers:Array<{layer:object, score:number}>, unresolved:string[]}}
+   */
+  _resolveLayerPhrase(value) {
+    const layers = [];
+    const unresolved = [];
+
+    for (const part of splitLayerList(value)) {
+      const resolved = this._resolveOneLayer(part);
+      if (resolved) layers.push(resolved);
+      else unresolved.push(part);
+    }
+    return { layers, unresolved };
+  }
+
   _requireLayer(value) {
-    const result = this.catalog.resolveLayer(value) || this.catalog.findLayer(value);
-    if (result) return { layer: result.layer, score: result.score };
-    return {
-      issue: {
-        code: 'unknown_layer',
-        severity: 'input',
-        message: `Layer "${normalizeText(value)}" is not in the spatial catalog.`,
-        details: { value: normalizeText(value) },
-      },
-    };
+    const { layers, unresolved } = this._resolveLayerPhrase(value);
+
+    if (unresolved.length > 0 || layers.length === 0) {
+      const missing = unresolved.length > 0 ? unresolved : [normalizeText(value)];
+      return {
+        issue: {
+          code: 'unknown_layer',
+          severity: 'input',
+          message: missing.length === 1
+            ? `Layer "${missing[0]}" is not in the spatial catalog.`
+            : `Layers ${missing.map((name) => `"${name}"`).join(' and ')} are not in the spatial catalog.`,
+          details: { value: normalizeText(value), unresolved: missing },
+        },
+      };
+    }
+
+    if (layers.length > 1) {
+      const named = layers.map((entry) => entry.layer.id);
+      return {
+        issue: {
+          code: 'ambiguous_layer_list',
+          severity: 'input',
+          message: `This command applies to one layer, but "${normalizeText(value)}" names `
+            + `${named.length}: ${named.join(', ')}. Ask for them one at a time.`,
+          details: { value: normalizeText(value), layerIds: named },
+        },
+      };
+    }
+
+    return { layer: layers[0].layer, score: layers[0].score };
   }
 
   _parsePredicate(expression, layer) {
@@ -558,6 +737,14 @@ export class SpatialCommandCompiler {
         };
       }
       const scalar = parseScalar(match[2], fieldResult.field);
+      if (scalar.issue) {
+        return {
+          issue: {
+            ...scalar.issue,
+            details: { ...scalar.issue.details, layerId: layer.id },
+          },
+        };
+      }
       return {
         predicate: {
           type: 'comparison',
