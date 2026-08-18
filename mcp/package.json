@@ -1,0 +1,40 @@
+{
+  "name": "voicegis-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MCP server that lets an agent query a spatial data service in plain language, grounded in the service's own catalog and bounded by permissions the operator sets",
+  "type": "module",
+  "bin": {
+    "voicegis-mcp": "src/cli.js"
+  },
+  "main": "src/server.js",
+  "exports": {
+    ".": "./src/server.js"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test test/server.test.mjs",
+    "start": "node src/cli.js"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "gis",
+    "geospatial",
+    "ogc-api-features",
+    "cql2",
+    "voicegis"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "voicegis": "file:..",
+    "zod": "^3.23.0"
+  }
+}

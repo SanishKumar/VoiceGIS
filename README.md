@@ -364,6 +364,24 @@ npm run dev
 
 The demo lives in [`demo/`](demo/) and is a working reference integration: catalog, policy, confirmation dialog, execution receipts, and the GeoJSON adapter, in about 900 lines. Regenerate the animation above with `node scripts/record-demo.mjs`.
 
+## Driving it from an agent (MCP)
+
+[`mcp/`](mcp/) is a Model Context Protocol server that points at any OGC API -
+Features service and lets an agent query it in plain language:
+
+```bash
+node mcp/src/cli.js --service https://demo.ldproxy.net/zoomstack
+```
+
+The agent never writes a query string. It sends a request, VoiceGIS compiles it
+against a catalog derived from the service, checks it against permissions the
+operator set when starting the server, and only then executes — returning the
+typed plan and a receipt. A request naming a field that does not exist comes
+back `needs_input`; one needing a permission that was not granted comes back
+`blocked`. Nothing runs in either case.
+
+The default is read-only. See [mcp/README.md](mcp/README.md).
+
 ## Documentation
 
 - [VoiceGIS Core guide](docs/core.md)

@@ -77,7 +77,7 @@
     "preview": "vite preview",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
     "evaluate": "node scripts/evaluate.js",
-    "lint": "eslint src/ demo/ scripts/ sites/ e2e/",
+    "lint": "eslint src/ demo/ scripts/ sites/ e2e/ mcp/src/",
     "validate:package": "node scripts/validate-package.js",
     "prepublishOnly": "npm test -- --runInBand && npm run lint && npm run build && npm run validate:package",
     "test:e2e": "playwright test",
