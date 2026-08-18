@@ -16,6 +16,7 @@
 
 import { OPERATION } from '../src/core/constants.js';
 import { createOgcApiFeaturesAdapter } from '../src/adapters/ogcApiFeatures.js';
+import { catalogFromOgcService } from '../src/adapters/ogcCatalog.js';
 
 const LIVE = process.env.VOICEGIS_LIVE_OGC === '1';
 const describeLive = LIVE ? describe : describe.skip;
@@ -191,5 +192,86 @@ describeLive('OGC adapter against a live ldproxy service', () => {
     await expect(adapter.execute(operation(OPERATION.QUERY_FILTER, airports, {
       predicate: { type: 'comparison', field: 'no_such_queryable', operator: 'eq', value: 'x' },
     }))).rejects.toThrow(/responded \d+/);
+  }, TIMEOUT);
+});
+
+/**
+ * Catalog derivation against real services.
+ *
+ * The two targets differ in exactly the way that matters: ldproxy implements
+ * Part 3 filtering, pygeoapi advertises the CQL2 encoding but not the filter
+ * class — and its items endpoint returns every feature regardless of the
+ * filter it is sent. The derived capabilities must reflect that difference.
+ */
+describeLive('catalogFromOgcService against live services', () => {
+  test('ldproxy: derives a filterable catalog with per-collection geometry', async () => {
+    const derived = await catalogFromOgcService(BASE_URL, { signal: AbortSignal.timeout(TIMEOUT) });
+
+    expect(derived.catalog.layers.length).toBeGreaterThan(5);
+    expect(derived.conformance.canFilter).toBe(true);
+
+    const airports = derived.catalog.layers.find((layer) => layer.id === 'airports');
+    expect(airports.label).toBe('Airports');
+    expect(airports.fields.map((field) => field.id)).toContain('name');
+    // The geometry queryable is not offered as a filterable field.
+    expect(airports.fields.map((field) => field.id)).not.toContain('geom');
+    expect(derived.geometryProperty.airports).toBe('geom');
+
+    expect(airports.capabilities).toContain(OPERATION.QUERY_FILTER);
+    expect(airports.capabilities).toContain(OPERATION.QUERY_SPATIAL_SELECT);
+  }, TIMEOUT);
+
+  test('ldproxy: the derived catalog drives a real query end to end', async () => {
+    const derived = await catalogFromOgcService(BASE_URL, { signal: AbortSignal.timeout(TIMEOUT) });
+
+    const adapter = createOgcApiFeaturesAdapter({
+      baseUrl: BASE_URL,
+      catalog: derived.catalog,
+      geometryProperty: derived.geometryProperty,
+      limit: 50,
+      maxPages: 10,
+    });
+
+    const result = await adapter.execute(operation(
+      OPERATION.QUERY_FILTER,
+      { kind: 'layer', layerId: 'airports' },
+      { predicate: { type: 'comparison', field: 'name', operator: 'contains', value: 'Airport' } }
+    ));
+
+    expect(result.returned).toBeGreaterThan(0);
+    for (const feature of adapter.getFeatures('airports')) {
+      expect(feature.properties.name).toMatch(/Airport/i);
+    }
+  }, TIMEOUT);
+
+  test('pygeoapi: a service that ignores filters is denied query capabilities', async () => {
+    const PYGEOAPI = 'https://demo.pygeoapi.io/master';
+    const derived = await catalogFromOgcService(PYGEOAPI, { signal: AbortSignal.timeout(TIMEOUT) });
+
+    expect(derived.conformance.cql2Text).toBe(true);
+    expect(derived.conformance.filter).toBe(false);
+    expect(derived.conformance.canFilter).toBe(false);
+
+    const lakes = derived.catalog.layers.find((layer) => layer.id === 'lakes');
+    expect(lakes).toBeDefined();
+    expect(lakes.capabilities).not.toContain(OPERATION.QUERY_FILTER);
+    expect(lakes.capabilities).toContain(OPERATION.LAYER_VISIBILITY);
+    expect(derived.warnings.join(' ')).toMatch(/does not advertise/);
+
+    // Demonstrate why: the service answers 200 and ignores the filter.
+    const url = `${PYGEOAPI}/collections/lakes/items?f=json&limit=5`
+      + `&filter=${encodeURIComponent("name LIKE '%Huron%'")}&filter-lang=cql2-text`;
+    const body = await (await fetch(url, { signal: AbortSignal.timeout(TIMEOUT) })).json();
+    const names = (body.features || []).map((feature) => feature.properties.name);
+
+    expect(names.length).toBeGreaterThan(0);
+    expect(names.every((name) => /Huron/i.test(name))).toBe(false);
+  }, TIMEOUT);
+
+  test('pygeoapi: geometry property is detected as "geometry", not "geom"', async () => {
+    const derived = await catalogFromOgcService('https://demo.pygeoapi.io/master', {
+      signal: AbortSignal.timeout(TIMEOUT),
+    });
+    expect(derived.geometryProperty.lakes).toBe('geometry');
   }, TIMEOUT);
 });

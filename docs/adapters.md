@@ -161,6 +161,73 @@ default; many services use `geometry`). A service that accepts the request but
 does not implement the filter class may ignore the filter and return
 everything, so verify against `/conformance` before trusting results.
 
+### Deriving the catalog from the service
+
+Writing a catalog by hand is the slowest part of adopting this library, and a
+conformant service already publishes everything needed:
+
+```js
+import { catalogFromOgcService, createOgcApiFeaturesAdapter } from 'voicegis/adapters';
+import { createVoiceGISCore } from 'voicegis/core';
+
+const { catalog, geometryProperty, conformance, warnings } =
+  await catalogFromOgcService('https://demo.ldproxy.net/zoomstack');
+
+warnings.forEach((warning) => console.warn(warning));
+
+const gis = createVoiceGISCore({
+  catalog,
+  adapter: createOgcApiFeaturesAdapter({
+    baseUrl: 'https://demo.ldproxy.net/zoomstack',
+    catalog,
+    geometryProperty,
+  }),
+});
+```
+
+`/collections` names the layers, `/collections/{id}/queryables` types their
+fields, and the geometry queryable becomes the geometry property rather than a
+filterable field. Ids with separators gain a spoken alias, so `dutch_windmills`
+also answers to "dutch windmills". The catalog `version` includes a fingerprint
+of the derived schema, so a plan compiled against an older shape is rejected at
+execution instead of running against fields that moved.
+
+#### Capabilities follow conformance, and this matters
+
+Capabilities are derived from `/conformance`, not assumed. A service that does
+not implement Part 3 filtering is granted no query capabilities at all.
+
+That is not defensive pedantry. The public pygeoapi demo advertises
+`cql2-text` and `basic-cql2` but **not** `ogcapi-features-3/conf/filter`. Send
+it a filter anyway and it answers `200 OK`, reports 25 matches, and returns
+every feature — a `name LIKE '%Huron%'` query comes back with Lake Baikal,
+Lake Winnipeg and Great Slave Lake. Nothing errors. The wrong answer simply
+arrives looking exactly like a right one.
+
+So a catalog derived from that service carries `layer.visibility`,
+`query.clear`, `selection.clear` and `data.export`, and nothing else. A filter
+command against it fails preflight with a clear reason rather than returning a
+confident lie, and `warnings` explains why:
+
+```js
+conformance
+// { filter: false, cql2Text: true, basicCql2: true, spatial: false, canFilter: false }
+
+warnings[0]
+// 'This service does not advertise OGC API - Features Part 3 filtering with
+//  CQL2-Text. Attribute queries are NOT enabled: a service in this state has
+//  been observed to accept a filter, answer 200, and return every feature as
+//  though it had been applied...'
+```
+
+Missing `advanced-comparison-operators` disables `contains` and `starts with`;
+missing spatial functions disables proximity selection. Each omission is
+reported in `warnings`.
+
+The geometry property is also read per collection, because services disagree:
+ldproxy calls it `geom`, pygeoapi calls it `geometry`. Pass the returned map
+straight to the adapter.
+
 ### Pagination
 
 Paging follows the `rel="next"` link the service returns, resolved against the

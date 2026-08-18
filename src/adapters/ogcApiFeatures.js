@@ -59,7 +59,10 @@ function requireLayerId(operation) {
  * @property {SpatialCatalog|import('../core/types.js').CatalogDefinition} [catalog]
  * @property {typeof fetch} [fetch]
  * @property {Record<string, string>} [headers]
- * @property {string} [geometryProperty] - Queryable name of the geometry. Defaults to `geom`.
+ * @property {string|Record<string,string>} [geometryProperty]
+ *   Queryable name of the geometry, or a map of layerId to name. Defaults to
+ *   `geom`. Services disagree here — ldproxy uses `geom`, pygeoapi uses
+ *   `geometry` — so `catalogFromOgcService` returns the map to pass through.
  * @property {number} [limit] - Page size requested from the service. Defaults to 500.
  * @property {number} [maxPages] - Safety bound on pagination. Defaults to 20.
  * @property {boolean} [caseInsensitive] - Wrap string comparisons in CASEI().
@@ -100,6 +103,10 @@ export class OgcApiFeaturesAdapter {
     this.collections = options.collections || {};
     this.headers = options.headers || {};
     this.geometryProperty = options.geometryProperty || 'geom';
+    if (typeof this.geometryProperty !== 'string'
+      && (typeof this.geometryProperty !== 'object' || this.geometryProperty === null)) {
+      throw new TypeError('geometryProperty must be a string or a layerId to name map.');
+    }
     this.limit = options.limit || 500;
     this.maxPages = options.maxPages || 20;
     this.caseInsensitive = options.caseInsensitive === true;
@@ -167,6 +174,15 @@ export class OgcApiFeaturesAdapter {
   getFeatures(layerId, options = {}) {
     if (options.scope === 'selected') return this.selection.get(layerId) || [];
     return this.layers.get(layerId)?.features || [];
+  }
+
+  /**
+   * The queryable name of the geometry for a layer.
+   * @param {string} layerId
+   */
+  geometryPropertyFor(layerId) {
+    if (typeof this.geometryProperty === 'string') return this.geometryProperty;
+    return this.geometryProperty[layerId] || 'geom';
   }
 
   /** The collection id backing a catalog layer. */
@@ -286,7 +302,9 @@ export class OgcApiFeaturesAdapter {
 
     const meters = distanceToMeters(args.distance);
     const buffers = await this._referenceBuffers(args.reference, meters, signal);
-    const spatialFilter = intersectsCql2(buffers, { geometryProperty: this.geometryProperty });
+    const spatialFilter = intersectsCql2(buffers, {
+      geometryProperty: this.geometryPropertyFor(requireLayerId(operation)),
+    });
 
     const result = await this._query(operation, args, {
       store: 'selection',

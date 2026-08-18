@@ -269,6 +269,8 @@ const adapter = createOgcApiFeaturesAdapter({
 
 Both refuse rather than guess: unknown units, unsupported relations, and unresolvable references throw so the executor records a failed operation instead of putting a wrong answer on a map. The OGC adapter does not claim `analysis.buffer`, because OGC API - Features has no standard geometry-processing endpoint — so a buffer command fails preflight rather than halfway through.
 
+`catalogFromOgcService(url)` builds the whole catalog from a live service — layers from `/collections`, typed fields from `/collections/{id}/queryables` — so pointing at an OGC endpoint takes three lines instead of a hand-written catalog. Crucially, it grants query capabilities only when the service advertises Part 3 filtering: a service that accepts a filter and silently returns everything gets no filter capability at all, and says why. [Details](docs/adapters.md#capabilities-follow-conformance-and-this-matters).
+
 The OGC adapter needs a service conforming to OGC API - Features Part 3 (Filtering) and CQL2-Text; it pages by following the service's own `rel="next"` link and reports `truncated` rather than pretending a page-bounded result is complete. Proximity is expressed as intersection with a buffer polygon, which is a [bounded approximation, not an exact distance test](docs/adapters.md#proximity-queries-are-bounded-approximations).
 
 `composeAdapters(data, view)` puts a data adapter and a map adapter behind one contract while keeping combined capabilities accurate.

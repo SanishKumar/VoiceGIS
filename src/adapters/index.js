@@ -40,6 +40,8 @@ export {
   createGeoJSONAdapter,
 } from './geojson.js';
 
+export { CONFORMANCE, catalogFromOgcService } from './ogcCatalog.js';
+
 export {
   OGC_ADAPTER_CAPABILITIES,
   OgcApiFeaturesAdapter,
